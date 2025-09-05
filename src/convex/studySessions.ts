@@ -75,12 +75,14 @@ export const getWeeklyStats = query({
     const today = new Date();
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     const weekAgoStr = weekAgo.toISOString().split('T')[0];
-    
-    return await ctx.db
+
+    // Use index with range on date; avoid full table filter
+    const results = await ctx.db
       .query("studySessions")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .filter((q) => q.gte(q.field("date"), weekAgoStr))
+      .withIndex("by_user_and_date", (q) => q.eq("userId", user._id).gte("date", weekAgoStr))
       .collect();
+
+    return results;
   },
 });
 
