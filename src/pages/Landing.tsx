@@ -13,10 +13,59 @@ import {
   CheckCircle
 } from "lucide-react";
 import { useNavigate } from "react-router";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function Landing() {
   const { isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Add local state for timer customization
+  const [focusMinutes, setFocusMinutes] = useState<number>(25);
+  const [breakMinutes, setBreakMinutes] = useState<number>(5);
+
+  // Add mutation to save settings if authenticated
+  const updateSettings = useMutation(api.studySessions.updateUserSettings);
+
+  const handleSaveTimerPrefs = async () => {
+    const invalidFocus =
+      !Number.isFinite(focusMinutes) || focusMinutes < 1 || focusMinutes > 180;
+    const invalidBreak =
+      !Number.isFinite(breakMinutes) || breakMinutes < 1 || breakMinutes > 60;
+
+    if (invalidFocus || invalidBreak) {
+      toast("Please fix the highlighted fields", {
+        description:
+          (invalidFocus ? "Focus must be between 1 and 180 minutes. " : "") +
+          (invalidBreak ? "Break must be between 1 and 60 minutes." : ""),
+      });
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast("Sign in to save your preferences", {
+        description: "We'll redirect you to continue.",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    const f = Math.round(focusMinutes);
+    const b = Math.round(breakMinutes);
+    try {
+      await updateSettings({ focusDuration: f, breakDuration: b });
+      toast("Timer settings updated", {
+        description: `Focus: ${f} min • Break: ${b} min`,
+      });
+    } catch (e) {
+      console.error(e);
+      toast("Failed to update settings");
+    }
+  };
 
   const handleGetStarted = () => {
     if (isAuthenticated) {
@@ -184,6 +233,84 @@ export default function Landing() {
             </motion.div>
           ))}
         </div>
+      </section>
+
+      {/* Timer Preferences (Customize Focus & Break) */}
+      <section className="container mx-auto px-4 pb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="max-w-2xl mx-auto"
+        >
+          <Card className="border-0 bg-card/60 backdrop-blur-sm">
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold">Customize Timer</h3>
+                <p className="text-sm text-muted-foreground">
+                  Set your preferred focus and break durations.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="focusPref">Focus duration (minutes)</Label>
+                  <Input
+                    id="focusPref"
+                    type="number"
+                    min={1}
+                    max={180}
+                    value={Number.isFinite(focusMinutes) ? focusMinutes : 25}
+                    onChange={(e) => setFocusMinutes(Number(e.target.value))}
+                  />
+                  {(!Number.isFinite(focusMinutes) ||
+                    focusMinutes < 1 ||
+                    focusMinutes > 180) && (
+                    <span className="text-xs text-red-500">
+                      Enter a value between 1 and 180 minutes.
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="breakPref">Break duration (minutes)</Label>
+                  <Input
+                    id="breakPref"
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={Number.isFinite(breakMinutes) ? breakMinutes : 5}
+                    onChange={(e) => setBreakMinutes(Number(e.target.value))}
+                  />
+                  {(!Number.isFinite(breakMinutes) ||
+                    breakMinutes < 1 ||
+                    breakMinutes > 60) && (
+                    <span className="text-xs text-red-500">
+                      Enter a value between 1 and 60 minutes.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSaveTimerPrefs}
+                  disabled={
+                    !Number.isFinite(focusMinutes) ||
+                    focusMinutes < 1 ||
+                    focusMinutes > 180 ||
+                    !Number.isFinite(breakMinutes) ||
+                    breakMinutes < 1 ||
+                    breakMinutes > 60 ||
+                    isLoading
+                  }
+                >
+                  Save Preferences
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </section>
 
       {/* CTA Section */}
