@@ -8,6 +8,8 @@ import { Pause, Play, RotateCcw, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useMutation } from "convex/react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PomodoroTimerProps {
   onSessionComplete?: () => void;
@@ -19,6 +21,8 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
+  const [subject, setSubject] = useState("");
+  const [notes, setNotes] = useState("");
   
   const focusDuration = (user?.focusDuration || 25) * 60;
   const breakDuration = (user?.breakDuration || 5) * 60;
@@ -110,7 +114,13 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
         duration: focusDuration / 60,
         type: "focus",
         completed: true,
+        subject: subject.trim() || undefined,
+        notes: notes.trim() || undefined,
       });
+
+      // Clear notes for the next session
+      setSubject("");
+      setNotes("");
 
       // Show celebration
       toast.success("Great job! 🎉 You finished a focus session!", {
@@ -249,6 +259,35 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
           </div>
           <p className="text-sm text-muted-foreground">
             {sessionsCompleted} sessions completed today
+          </p>
+        </div>
+
+        {/* Session Notes */}
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid gap-1">
+              <span className="text-sm font-medium">Subject (optional)</span>
+              <Input
+                placeholder="e.g., Calculus, Biology, Project X"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                maxLength={60}
+              />
+            </div>
+            <div className="grid gap-1 md:col-span-1">
+              <span className="text-sm font-medium">Notes (optional)</span>
+              <Textarea
+                placeholder="What did you focus on this session?"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                className="resize-none"
+                maxLength={300}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Notes will be saved automatically when a focus session completes.
           </p>
         </div>
       </CardContent>
