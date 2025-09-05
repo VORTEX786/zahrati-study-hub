@@ -121,7 +121,7 @@ export default function Landing() {
               Master Your Study Sessions
             </h2>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Transform your learning with Zahrati - the modern study tracker that makes productivity rewarding and consistent.
+              Transform your learnig with Zahrati by Ziaul - the modern study tracker that makes productivity rewarding and consistent.
             </p>
           </div>
 
@@ -183,84 +183,6 @@ export default function Landing() {
               </Card>
             </motion.div>
           ))}
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.6 }}
-            className="space-y-6"
-          >
-            <div className="space-y-4">
-              <h3 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Why Students Love Zahrati
-              </h3>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Join thousands of students who have transformed their study habits and achieved their academic goals.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {benefits.map((benefit, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.8 + index * 0.1 }}
-                  className="flex items-start gap-3"
-                >
-                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-muted-foreground">{benefit}</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.7 }}
-            className="relative"
-          >
-            <Card className="p-8 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
-              <CardContent className="space-y-6">
-                <div className="text-center space-y-4">
-                  <div className="w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto">
-                    <Clock className="h-10 w-10 text-white" />
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="text-2xl font-bold">25:00</h4>
-                    <p className="text-muted-foreground">Focus Session Active</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Session Progress</span>
-                    <span>68%</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div className="bg-gradient-to-r from-primary to-accent h-2 rounded-full w-2/3"></div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="space-y-1">
-                    <div className="text-2xl font-bold text-primary">🔥 7</div>
-                    <div className="text-xs text-muted-foreground">Day Streak</div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-2xl font-bold text-accent">⭐ 12</div>
-                    <div className="text-xs text-muted-foreground">Sessions Today</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
         </div>
       </section>
 
