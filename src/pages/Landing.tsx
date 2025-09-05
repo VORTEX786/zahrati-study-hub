@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useState, useEffect } from "@/components/ui/table";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -53,6 +54,23 @@ export default function Landing() {
   // Add mutation to save settings if authenticated
   const updateSettings = useMutation(api.studySessions.updateUserSettings);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("zahrati_timer_prefs");
+      if (raw) {
+        const parsed = JSON.parse(raw) as { focusMinutes?: number; breakMinutes?: number };
+        if (typeof parsed.focusMinutes === "number" && Number.isFinite(parsed.focusMinutes)) {
+          setFocusMinutes(parsed.focusMinutes);
+        }
+        if (typeof parsed.breakMinutes === "number" && Number.isFinite(parsed.breakMinutes)) {
+          setBreakMinutes(parsed.breakMinutes);
+        }
+      }
+    } catch {
+      // ignore corrupt storage
+    }
+  }, []);
+
   const handleSaveTimerPrefs = async () => {
     const invalidFocus =
       !Number.isFinite(focusMinutes) || focusMinutes < 1 || focusMinutes > 180;
@@ -68,21 +86,26 @@ export default function Landing() {
       return;
     }
 
-    if (!isAuthenticated) {
-      toast("Sign in to save your preferences", {
-        description: "We'll redirect you to continue.",
-      });
-      navigate("/auth");
-      return;
-    }
-
     const f = Math.round(focusMinutes);
     const b = Math.round(breakMinutes);
+
     try {
-      await updateSettings({ focusDuration: f, breakDuration: b });
-      toast("Timer settings updated", {
-        description: `Focus: ${f} min • Break: ${b} min`,
-      });
+      if (isAuthenticated) {
+        // Save to backend if signed in
+        await updateSettings({ focusDuration: f, breakDuration: b });
+        toast("Timer settings updated", {
+          description: `Focus: ${f} min • Break: ${b} min`,
+        });
+      } else {
+        // Persist locally when not signed in (no login prompts)
+        localStorage.setItem(
+          "zahrati_timer_prefs",
+          JSON.stringify({ focusMinutes: f, breakMinutes: b })
+        );
+        toast("Preferences saved locally", {
+          description: `Focus: ${f} min • Break: ${b} min`,
+        });
+      }
     } catch (e) {
       console.error(e);
       toast("Failed to update settings");
@@ -93,7 +116,8 @@ export default function Landing() {
     if (isAuthenticated) {
       navigate("/dashboard");
     } else {
-      navigate("/auth");
+      // No login navigation from home page
+      toast("You can explore the page without signing in.");
     }
   };
 
@@ -168,13 +192,15 @@ export default function Landing() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Button 
-              onClick={handleGetStarted}
-              disabled={isLoading}
-              variant="outline"
-            >
-              {isAuthenticated ? "Dashboard" : "Get Started"}
-            </Button>
+            {isAuthenticated ? (
+              <Button 
+                onClick={() => navigate("/dashboard")}
+                disabled={isLoading}
+                variant="outline"
+              >
+                Dashboard
+              </Button>
+            ) : null}
           </motion.div>
         </div>
       </nav>
@@ -221,15 +247,17 @@ export default function Landing() {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
-            <Button 
-              size="lg" 
-              onClick={handleGetStarted}
-              disabled={isLoading}
-              className="text-lg px-8 py-6 rounded-xl"
-            >
-              {isAuthenticated ? "Go to Dashboard" : "Start Studying Today"}
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            {isAuthenticated ? (
+              <Button 
+                size="lg" 
+                onClick={() => navigate("/dashboard")}
+                disabled={isLoading}
+                className="text-lg px-8 py-6 rounded-xl"
+              >
+                Go to Dashboard
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            ) : null}
           </motion.div>
         </motion.div>
       </section>
@@ -391,15 +419,17 @@ export default function Landing() {
             </p>
           </div>
 
-          <Button 
-            size="lg" 
-            onClick={handleGetStarted}
-            disabled={isLoading}
-            className="text-lg px-8 py-6 rounded-xl bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
-          >
-            {isAuthenticated ? "Continue Studying" : "Get Started"}
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+          {isAuthenticated ? (
+            <Button 
+              size="lg" 
+              onClick={() => navigate("/dashboard")}
+              disabled={isLoading}
+              className="text-lg px-8 py-6 rounded-xl bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
+            >
+              Continue Studying
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          ) : null}
         </motion.div>
       </section>
 
