@@ -43,6 +43,61 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
     return () => clearInterval(interval);
   }, [isRunning, timeLeft]);
 
+  const playHooraySound = async () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const audioCtx = new AudioCtx();
+      // Ensure context is running (some browsers suspend by default)
+      if (audioCtx.state === "suspended") await audioCtx.resume();
+
+      const now = audioCtx.currentTime;
+      const master = audioCtx.createGain();
+      master.gain.value = 0.05; // keep it subtle
+      master.connect(audioCtx.destination);
+
+      // Play a quick arpeggiated major chord (C-E-G) as a "hooray"
+      const notes = [261.63, 329.63, 392.00]; // C4, E4, G4
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(master);
+
+        const start = now + i * 0.06;
+        const end = start + 0.25;
+
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.8, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, end);
+
+        osc.start(start);
+        osc.stop(end + 0.01);
+      });
+
+      // Quick end sparkle
+      const sparkle = audioCtx.createOscillator();
+      const sparkleGain = audioCtx.createGain();
+      sparkle.type = "triangle";
+      sparkle.connect(sparkleGain);
+      sparkleGain.connect(master);
+
+      const sStart = now + 0.22;
+      const sEnd = sStart + 0.25;
+      sparkle.frequency.setValueAtTime(660, sStart);
+      sparkle.frequency.exponentialRampToValueAtTime(1320, sEnd);
+      sparkleGain.gain.setValueAtTime(0.0001, sStart);
+      sparkleGain.gain.linearRampToValueAtTime(0.5, sStart + 0.02);
+      sparkleGain.gain.exponentialRampToValueAtTime(0.0001, sEnd);
+
+      sparkle.start(sStart);
+      sparkle.stop(sEnd + 0.01);
+    } catch {
+      // no-op: sound is optional; ignore failures silently
+    }
+  };
+
   const handleTimerComplete = async () => {
     setIsRunning(false);
     
@@ -62,6 +117,9 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
         description: "Time for a well-deserved break!",
         duration: 5000,
       });
+
+      // Play hooray sound
+      playHooraySound();
 
       // Trigger confetti effect
       createConfetti();
