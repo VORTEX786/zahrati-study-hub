@@ -305,7 +305,7 @@ export default function Landing() {
             </div>
             
             <div className="text-sm text-muted-foreground text-center">
-              Built with ❤️ for students everywhere
+              Study Tracker by Ziaul • Built with ❤️ for students everywhere
             </div>
           </div>
         </div>
