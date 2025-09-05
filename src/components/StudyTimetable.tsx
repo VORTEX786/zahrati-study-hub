@@ -60,7 +60,6 @@ export function StudyTimetable() {
     isResizing: boolean;
     resizeHandle: 'top' | 'bottom' | null;
   } | null>(null);
-  const [seeding, setSeeding] = useState(false);
 
   // Form states
   const [newBlockForm, setNewBlockForm] = useState({
@@ -83,7 +82,7 @@ export function StudyTimetable() {
     dayEnd: "24:00",
     breakDefaultMinutes: 30,
     rotateLastBlock: true,
-    weakSubjectIds: [] as string[],
+    weakSubjectIds: [] as Id<"subjects">[],
   });
 
   // Queries
@@ -104,35 +103,33 @@ export function StudyTimetable() {
   const upsertTimetable = useMutation(api.timetable.upsertTimetable);
   const upsertFixedEvent = useMutation(api.timetable.upsertFixedEvent);
   const deleteFixedEvent = useMutation(api.timetable.deleteFixedEvent);
-  const createDefaultTimetable = useMutation(api.timetable.createDefaultTimetable);
-
-  // Ensure a timetable exists: seed once if not found
-  useEffect(() => {
-    if (timetable === null && !seeding) {
-      setSeeding(true);
-      createDefaultTimetable({})
-        .catch((e) => {
-          console.error(e);
-          toast("Failed to initialize timetable", { description: (e as Error).message });
-        })
-        .finally(() => setSeeding(false));
-    }
-  }, [timetable, seeding, createDefaultTimetable]);
+  const ensureTimetable = useMutation(api.timetable.createDefaultTimetable);
 
   const gridRef = useRef<HTMLDivElement>(null);
 
+  // Ensure a default timetable exists (runs once if none found)
+  const ensuredRef = useRef(false);
+  useEffect(() => {
+    if (timetable === null && !ensuredRef.current) {
+      ensuredRef.current = true;
+      ensureTimetable({}).catch((e) =>
+        toast("Failed to initialize timetable", { description: (e as Error).message })
+      );
+    }
+  }, [timetable, ensureTimetable]);
+
   // Initialize settings form when timetable loads
-  useState(() => {
+  useEffect(() => {
     if (timetable) {
       setSettingsForm({
         dayStart: timetable.dayStart,
         dayEnd: timetable.dayEnd,
         breakDefaultMinutes: timetable.breakDefaultMinutes || 30,
         rotateLastBlock: timetable.rotateLastBlock ?? true,
-        weakSubjectIds: timetable.weakSubjectIds?.map(id => id) || [],
+        weakSubjectIds: (timetable.weakSubjectIds as Id<"subjects">[]) || [],
       });
     }
-  });
+  }, [timetable]);
 
   const handleAddBlock = async () => {
     if (!timetable) return;
@@ -142,7 +139,9 @@ export function StudyTimetable() {
       let label = newBlockForm.label;
 
       if (newBlockForm.kind === "study" && newBlockForm.subjectId) {
-        const subject = subjects?.find(s => s._id === newBlockForm.subjectId);
+        const subject = subjects?.find(
+          (s) => s._id === (newBlockForm.subjectId as unknown as Id<"subjects">)
+        );
         if (subject) {
           color = subject.color;
           label = label || subject.name;
@@ -154,7 +153,9 @@ export function StudyTimetable() {
       await createBlock({
         timetableId: timetable._id,
         kind: newBlockForm.kind,
-        subjectId: newBlockForm.subjectId ? (newBlockForm.subjectId as Id<"subjects">) : undefined,
+        subjectId: newBlockForm.subjectId
+          ? (newBlockForm.subjectId as unknown as Id<"subjects">)
+          : undefined,
         label,
         color,
         start: newBlockForm.start,
@@ -335,7 +336,7 @@ export function StudyTimetable() {
   }, [dragState, timetable, updateBlock, blocks]);
 
   // Add global event listeners for drag
-  useState(() => {
+  useEffect(() => {
     const handleMove = (e: PointerEvent) => handlePointerMove(e);
     const handleUp = () => handlePointerUp();
 
@@ -350,7 +351,7 @@ export function StudyTimetable() {
       document.removeEventListener('pointerup', handleUp);
       document.removeEventListener('pointercancel', handleUp);
     };
-  });
+  }, [dragState, handlePointerMove, handlePointerUp]);
 
   if (!timetable || !blocks || !subjects) {
     return (
