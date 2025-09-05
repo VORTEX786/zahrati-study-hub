@@ -71,6 +71,15 @@ const schema = defineSchema(
       color: v.string(),
       totalTime: v.optional(v.number()),
     }).index("by_user", ["userId"]),
+
+    // Life goals table
+    lifeGoals: defineTable({
+      userId: v.id("users"),
+      title: v.string(),
+      description: v.optional(v.string()),
+      targetDate: v.optional(v.string()), // YYYY-MM-DD
+      completed: v.optional(v.boolean()),
+    }).index("by_user", ["userId"]),
   },
   {
     schemaValidation: false,

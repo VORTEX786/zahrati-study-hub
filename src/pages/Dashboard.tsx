@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { LogOut, Settings, User, Target } from "lucide-react";
+import { LifeGoals } from "@/components/LifeGoals";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -344,6 +345,8 @@ export default function Dashboard() {
           >
             <StudyRatioTracker />
             <StreakCounter />
+            {/* Life Goals Card */}
+            <LifeGoals />
           </motion.div>
         </div>
 
