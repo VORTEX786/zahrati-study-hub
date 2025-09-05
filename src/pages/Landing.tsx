@@ -28,6 +28,13 @@ export default function Landing() {
   const [focusMinutes, setFocusMinutes] = useState<number>(25);
   const [breakMinutes, setBreakMinutes] = useState<number>(5);
 
+  // Add: small helper to clamp and sanitize numeric input
+  const clampNumber = (val: unknown, min: number, max: number, fallback: number) => {
+    const n = typeof val === "number" ? val : Number(val);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(Math.max(Math.round(n), min), max);
+  };
+
   // Add mutation to save settings if authenticated
   const updateSettings = useMutation(api.studySessions.updateUserSettings);
 
@@ -262,6 +269,16 @@ export default function Landing() {
                     max={180}
                     value={Number.isFinite(focusMinutes) ? focusMinutes : 25}
                     onChange={(e) => setFocusMinutes(Number(e.target.value))}
+                    aria-invalid={
+                      !Number.isFinite(focusMinutes) ||
+                      focusMinutes < 1 ||
+                      focusMinutes > 180
+                    }
+                    onBlur={(e) =>
+                      setFocusMinutes(
+                        clampNumber(e.target.value, 1, 180, 25)
+                      )
+                    }
                   />
                   {(!Number.isFinite(focusMinutes) ||
                     focusMinutes < 1 ||
@@ -281,6 +298,16 @@ export default function Landing() {
                     max={60}
                     value={Number.isFinite(breakMinutes) ? breakMinutes : 5}
                     onChange={(e) => setBreakMinutes(Number(e.target.value))}
+                    aria-invalid={
+                      !Number.isFinite(breakMinutes) ||
+                      breakMinutes < 1 ||
+                      breakMinutes > 60
+                    }
+                    onBlur={(e) =>
+                      setBreakMinutes(
+                        clampNumber(e.target.value, 1, 60, 5)
+                      )
+                    }
                   />
                   {(!Number.isFinite(breakMinutes) ||
                     breakMinutes < 1 ||
