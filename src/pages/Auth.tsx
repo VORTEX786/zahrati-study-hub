@@ -19,6 +19,15 @@ import { ArrowRight, Loader2, Mail, UserX } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
+const GoogleIcon = () => (
+  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#EA4335" d="M12 10.2v3.83h5.45c-.24 1.25-.98 2.31-2.1 3.02l3.39 2.63C20.66 18.29 22 15.47 22 12c0-.71-.07-1.39-.2-2.05H12z"/>
+    <path fill="#34A853" d="M6.53 14.32A5.98 5.98 0 0 1 6 12c0-.81.17-1.58.47-2.27L3.01 7.02A10 10 0 0 0 2 12c0 1.62.39 3.15 1.08 4.5l3.45-2.18z"/>
+    <path fill="#4A90E2" d="M12 22c2.7 0 4.97-.9 6.62-2.43l-3.39-2.63c-.94.63-2.14 1.01-3.23 1.01-2.48 0-4.58-1.67-5.33-3.94l-3.45 2.18C4.88 19.98 8.19 22 12 22z"/>
+    <path fill="#FBBC05" d="M12 4.04c1.47 0 2.8.51 3.85 1.5l2.89-2.89A9.96 9.96 0 0 0 12 2C8.19 2 4.88 4.02 3.22 7.27l3.45 2.71C7.66 7.71 9.52 6.05 12 6.05z"/>
+  </svg>
+);
+
 interface AuthProps {
   redirectAfterAuth?: string;
 }
@@ -37,6 +46,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       navigate(redirect);
     }
   }, [authLoading, isAuthenticated, navigate, redirectAfterAuth]);
+
   const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
@@ -92,6 +102,22 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       console.error("Guest login error:", error);
       console.error("Error details:", JSON.stringify(error, null, 2));
       setError(`Failed to sign in as guest: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await signIn("google");
+      const redirect = redirectAfterAuth || "/";
+      navigate(redirect);
+    } catch (error) {
+      console.error("Google login error:", error);
+      setError(
+        "Google sign-in is not available. Please try email sign-in or contact support."
+      );
       setIsLoading(false);
     }
   };
@@ -165,11 +191,22 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                         </span>
                       </div>
                     </div>
-                    
+
                     <Button
                       type="button"
                       variant="outline"
                       className="w-full mt-4"
+                      onClick={handleGoogleLogin}
+                      disabled={isLoading}
+                    >
+                      <GoogleIcon />
+                      Continue with Google
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full mt-2"
                       onClick={handleGuestLogin}
                       disabled={isLoading}
                     >
