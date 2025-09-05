@@ -102,6 +102,18 @@ const schema = defineSchema(
       start: v.string(), // HH:MM format
       end: v.string(), // HH:MM format
       locked: v.optional(v.boolean()),
+      // ADD: dayOfWeek for weekly layout (optional)
+      dayOfWeek: v.optional(
+        v.union(
+          v.literal("mon"),
+          v.literal("tue"),
+          v.literal("wed"),
+          v.literal("thu"),
+          v.literal("fri"),
+          v.literal("sat"),
+          v.literal("sun"),
+        ),
+      ),
     }).index("by_timetable", ["timetableId"])
       .index("by_timetable_and_start", ["timetableId", "start"]),
 
@@ -112,6 +124,18 @@ const schema = defineSchema(
       start: v.string(), // HH:MM format
       end: v.string(), // HH:MM format
       color: v.optional(v.string()),
+      // ADD: optional dayOfWeek (undefined = applies to all days)
+      dayOfWeek: v.optional(
+        v.union(
+          v.literal("mon"),
+          v.literal("tue"),
+          v.literal("wed"),
+          v.literal("thu"),
+          v.literal("fri"),
+          v.literal("sat"),
+          v.literal("sun"),
+        ),
+      ),
     }).index("by_user", ["userId"]),
   },
   {

@@ -302,6 +302,17 @@ export const createBlock = mutation({
     color: v.optional(v.string()),
     start: v.string(),
     end: v.string(),
+    dayOfWeek: v.optional(
+      v.union(
+        v.literal("mon"),
+        v.literal("tue"),
+        v.literal("wed"),
+        v.literal("thu"),
+        v.literal("fri"),
+        v.literal("sat"),
+        v.literal("sun"),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -313,14 +324,18 @@ export const createBlock = mutation({
     const snappedStart = toHHMM(startMinutes);
     const snappedEnd = toHHMM(endMinutes);
 
-    // Check for overlaps with existing blocks
+    // Check for overlaps with existing blocks (same timetable & same day if provided)
     const existingBlocks = await ctx.db
       .query("timetableBlocks")
       .withIndex("by_timetable", (q) => q.eq("timetableId", args.timetableId))
       .collect();
 
     for (const block of existingBlocks) {
-      if (blocksOverlap(snappedStart, snappedEnd, block.start, block.end)) {
+      const sameDay =
+        args.dayOfWeek === undefined ||
+        block.dayOfWeek === undefined ||
+        block.dayOfWeek === args.dayOfWeek;
+      if (sameDay && blocksOverlap(snappedStart, snappedEnd, block.start, block.end)) {
         throw new Error("Block overlaps with existing block");
       }
     }
@@ -340,6 +355,7 @@ export const createBlock = mutation({
       color: color || "#6b7280",
       start: snappedStart,
       end: snappedEnd,
+      dayOfWeek: args.dayOfWeek,
     });
   },
 });
@@ -352,6 +368,17 @@ export const updateBlock = mutation({
     color: v.optional(v.string()),
     start: v.optional(v.string()),
     end: v.optional(v.string()),
+    dayOfWeek: v.optional(
+      v.union(
+        v.literal("mon"),
+        v.literal("tue"),
+        v.literal("wed"),
+        v.literal("thu"),
+        v.literal("fri"),
+        v.literal("sat"),
+        v.literal("sun"),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -370,9 +397,10 @@ export const updateBlock = mutation({
     }
 
     // Check for overlaps if times are being updated
-    if (args.start !== undefined || args.end !== undefined) {
+    if (args.start !== undefined || args.end !== undefined || args.dayOfWeek !== undefined) {
       const newStart = updates.start || block.start;
       const newEnd = updates.end || block.end;
+      const newDay = args.dayOfWeek ?? block.dayOfWeek;
 
       const existingBlocks = await ctx.db
         .query("timetableBlocks")
@@ -380,8 +408,14 @@ export const updateBlock = mutation({
         .collect();
 
       for (const otherBlock of existingBlocks) {
-        if (otherBlock._id !== args.blockId && blocksOverlap(newStart, newEnd, otherBlock.start, otherBlock.end)) {
-          throw new Error("Block would overlap with existing block");
+        if (otherBlock._id !== args.blockId) {
+          const sameDay =
+            newDay === undefined ||
+            otherBlock.dayOfWeek === undefined ||
+            otherBlock.dayOfWeek === newDay;
+          if (sameDay && blocksOverlap(newStart, newEnd, otherBlock.start, otherBlock.end)) {
+            throw new Error("Block would overlap with existing block");
+          }
         }
       }
     }
@@ -389,6 +423,7 @@ export const updateBlock = mutation({
     if (args.subjectId !== undefined) updates.subjectId = args.subjectId;
     if (args.label !== undefined) updates.label = args.label;
     if (args.color !== undefined) updates.color = args.color;
+    if (args.dayOfWeek !== undefined) updates.dayOfWeek = args.dayOfWeek;
 
     // Update color from subject if subject changed
     if (args.subjectId && !args.color) {
@@ -417,6 +452,17 @@ export const upsertFixedEvent = mutation({
     start: v.string(),
     end: v.string(),
     color: v.optional(v.string()),
+    dayOfWeek: v.optional(
+      v.union(
+        v.literal("mon"),
+        v.literal("tue"),
+        v.literal("wed"),
+        v.literal("thu"),
+        v.literal("fri"),
+        v.literal("sat"),
+        v.literal("sun"),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -431,6 +477,7 @@ export const upsertFixedEvent = mutation({
         start: snappedStart,
         end: snappedEnd,
         color: args.color || "#8b5cf6",
+        dayOfWeek: args.dayOfWeek,
       });
       return args.eventId;
     } else {
@@ -440,6 +487,7 @@ export const upsertFixedEvent = mutation({
         start: snappedStart,
         end: snappedEnd,
         color: args.color || "#8b5cf6",
+        dayOfWeek: args.dayOfWeek,
       });
     }
   },

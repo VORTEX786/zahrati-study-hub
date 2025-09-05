@@ -11,6 +11,8 @@ import { Clock, Plus, Settings, Eye, Edit3, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Id } from "@/convex/_generated/dataModel";
 
+type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+
 interface TimeBlock {
   _id: Id<"timetableBlocks">;
   kind: "study" | "break" | "fixed";
@@ -52,22 +54,14 @@ export function StudyTimetable() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showEventDialog, setShowEventDialog] = useState(false);
-  const [dragState, setDragState] = useState<{
-    blockId: string;
-    startY: number;
-    originalStart: number;
-    originalEnd: number;
-    isResizing: boolean;
-    resizeHandle: 'top' | 'bottom' | null;
-  } | null>(null);
 
-  // Form states
   const [newBlockForm, setNewBlockForm] = useState({
     kind: "study" as "study" | "break",
     subjectId: "",
     label: "",
     start: "18:00",
     end: "19:00",
+    dayOfWeek: "mon" as DayKey,
   });
 
   const [newEventForm, setNewEventForm] = useState({
@@ -75,6 +69,7 @@ export function StudyTimetable() {
     start: "20:00",
     end: "20:30",
     color: "#8b5cf6",
+    dayOfWeek: "mon" as DayKey,
   });
 
   const [settingsForm, setSettingsForm] = useState({
@@ -131,6 +126,23 @@ export function StudyTimetable() {
     }
   }, [timetable]);
 
+  // Utility: build 45-min slots between timetable.dayStart and dayEnd
+  const buildTimeSlots = useCallback((startStr: string, endStr: string) => {
+    const start = toMinutes(startStr);
+    const end = toMinutes(endStr);
+    const slots: Array<{ start: string; end: string }> = [];
+    for (let m = start; m < end; m += 45) {
+      const s = toHHMM(m);
+      const e = toHHMM(Math.min(m + 45, end));
+      slots.push({ start: s, end: e });
+    }
+    return slots;
+  }, []);
+
+  const handleStartSession = useCallback((label: string) => {
+    toast("Timer started", { description: label });
+  }, []);
+
   const handleAddBlock = async () => {
     if (!timetable) return;
 
@@ -160,6 +172,7 @@ export function StudyTimetable() {
         color,
         start: newBlockForm.start,
         end: newBlockForm.end,
+        dayOfWeek: newBlockForm.dayOfWeek,
       });
 
       setShowAddDialog(false);
@@ -169,6 +182,7 @@ export function StudyTimetable() {
         label: "",
         start: "18:00",
         end: "19:00",
+        dayOfWeek: newBlockForm.dayOfWeek,
       });
       toast("Block added successfully");
     } catch (error) {
@@ -183,6 +197,7 @@ export function StudyTimetable() {
         start: newEventForm.start,
         end: newEventForm.end,
         color: newEventForm.color,
+        dayOfWeek: newEventForm.dayOfWeek,
       });
 
       setShowEventDialog(false);
@@ -191,6 +206,7 @@ export function StudyTimetable() {
         start: "20:00",
         end: "20:30",
         color: "#8b5cf6",
+        dayOfWeek: "mon",
       });
       toast("Fixed event added successfully");
     } catch (error) {
@@ -228,131 +244,6 @@ export function StudyTimetable() {
     }
   };
 
-  const handlePointerDown = useCallback((e: React.PointerEvent, blockId: string, isResizing = false, handle: 'top' | 'bottom' | null = null) => {
-    if (isPreviewMode) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    const block = blocks?.find(b => b._id === blockId);
-    if (!block) return;
-
-    setDragState({
-      blockId,
-      startY: e.clientY,
-      originalStart: toMinutes(block.start),
-      originalEnd: toMinutes(block.end),
-      isResizing,
-      resizeHandle: handle,
-    });
-
-    setSelectedBlock(blockId);
-  }, [blocks, isPreviewMode]);
-
-  const handlePointerMove = useCallback((e: PointerEvent) => {
-    if (!dragState || !gridRef.current) return;
-
-    const rect = gridRef.current.getBoundingClientRect();
-    const dayStartMinutes = toMinutes(timetable?.dayStart || "06:30");
-    const dayEndMinutes = toMinutes(timetable?.dayEnd || "24:00");
-    const totalMinutes = dayEndMinutes - dayStartMinutes;
-    const pixelsPerMinute = rect.height / totalMinutes;
-
-    const deltaY = e.clientY - dragState.startY;
-    const deltaMinutes = snapTo5Min(deltaY / pixelsPerMinute);
-
-    let newStart = dragState.originalStart;
-    let newEnd = dragState.originalEnd;
-
-    if (dragState.isResizing) {
-      if (dragState.resizeHandle === 'top') {
-        newStart = Math.max(dayStartMinutes, dragState.originalStart + deltaMinutes);
-        newStart = Math.min(newStart, dragState.originalEnd - 5); // Minimum 5 minutes
-      } else if (dragState.resizeHandle === 'bottom') {
-        newEnd = Math.min(dayEndMinutes, dragState.originalEnd + deltaMinutes);
-        newEnd = Math.max(newEnd, dragState.originalStart + 5); // Minimum 5 minutes
-      }
-    } else {
-      // Dragging the whole block
-      const blockDuration = dragState.originalEnd - dragState.originalStart;
-      newStart = Math.max(dayStartMinutes, Math.min(dayEndMinutes - blockDuration, dragState.originalStart + deltaMinutes));
-      newEnd = newStart + blockDuration;
-    }
-
-    // Update block position optimistically
-    const blockElement = document.querySelector(`[data-block-id="${dragState.blockId}"]`) as HTMLElement;
-    if (blockElement) {
-      const startPercent = ((newStart - dayStartMinutes) / totalMinutes) * 100;
-      const endPercent = ((newEnd - dayStartMinutes) / totalMinutes) * 100;
-      blockElement.style.top = `${startPercent}%`;
-      blockElement.style.height = `${endPercent - startPercent}%`;
-    }
-  }, [dragState, timetable]);
-
-  const handlePointerUp = useCallback(async () => {
-    if (!dragState || !gridRef.current) {
-      setDragState(null);
-      return;
-    }
-
-    const rect = gridRef.current.getBoundingClientRect();
-    const dayStartMinutes = toMinutes(timetable?.dayStart || "06:30");
-    const dayEndMinutes = toMinutes(timetable?.dayEnd || "24:00");
-    const totalMinutes = dayEndMinutes - dayStartMinutes;
-    const pixelsPerMinute = rect.height / totalMinutes;
-
-    const blockElement = document.querySelector(`[data-block-id="${dragState.blockId}"]`) as HTMLElement;
-    if (!blockElement) {
-      setDragState(null);
-      return;
-    }
-
-    // Calculate final position from element style
-    const topPercent = parseFloat(blockElement.style.top) || 0;
-    const heightPercent = parseFloat(blockElement.style.height) || 0;
-    
-    const newStart = dayStartMinutes + (topPercent / 100) * totalMinutes;
-    const newEnd = dayStartMinutes + ((topPercent + heightPercent) / 100) * totalMinutes;
-
-    try {
-      await updateBlock({
-        blockId: dragState.blockId as Id<"timetableBlocks">,
-        start: toHHMM(newStart),
-        end: toHHMM(newEnd),
-      });
-    } catch (error) {
-      toast("Failed to update block", { description: (error as Error).message });
-      // Revert position on error
-      const originalBlock = blocks?.find(b => b._id === dragState.blockId);
-      if (originalBlock) {
-        const startPercent = ((toMinutes(originalBlock.start) - dayStartMinutes) / totalMinutes) * 100;
-        const endPercent = ((toMinutes(originalBlock.end) - dayStartMinutes) / totalMinutes) * 100;
-        blockElement.style.top = `${startPercent}%`;
-        blockElement.style.height = `${endPercent - startPercent}%`;
-      }
-    }
-
-    setDragState(null);
-  }, [dragState, timetable, updateBlock, blocks]);
-
-  // Add global event listeners for drag
-  useEffect(() => {
-    const handleMove = (e: PointerEvent) => handlePointerMove(e);
-    const handleUp = () => handlePointerUp();
-
-    if (dragState) {
-      document.addEventListener('pointermove', handleMove);
-      document.addEventListener('pointerup', handleUp);
-      document.addEventListener('pointercancel', handleUp);
-    }
-
-    return () => {
-      document.removeEventListener('pointermove', handleMove);
-      document.removeEventListener('pointerup', handleUp);
-      document.removeEventListener('pointercancel', handleUp);
-    };
-  }, [dragState, handlePointerMove, handlePointerUp]);
-
   if (!timetable || !blocks || !subjects) {
     return (
       <Card>
@@ -363,22 +254,43 @@ export function StudyTimetable() {
     );
   }
 
-  const dayStartMinutes = toMinutes(timetable.dayStart);
-  const dayEndMinutes = toMinutes(timetable.dayEnd);
-  const totalMinutes = dayEndMinutes - dayStartMinutes;
+  // Build weekly data
+  const days: Array<{ key: DayKey; label: string }> = [
+    { key: "mon", label: "Monday" },
+    { key: "tue", label: "Tuesday" },
+    { key: "wed", label: "Wednesday" },
+    { key: "thu", label: "Thursday" },
+    { key: "fri", label: "Friday" },
+  ];
+  const timeSlots = buildTimeSlots(timetable.dayStart, timetable.dayEnd);
 
-  // Generate hour lines
-  const hourLines = [];
-  for (let minutes = dayStartMinutes; minutes <= dayEndMinutes; minutes += 60) {
-    const percent = ((minutes - dayStartMinutes) / totalMinutes) * 100;
-    hourLines.push({
-      time: toHHMM(minutes),
-      percent,
-    });
-  }
+  // Helper to get items for a day and slot
+  const itemsFor = (day: DayKey, slotStart: string, slotEnd: string) => {
+    const slotS = toMinutes(slotStart);
+    const slotE = toMinutes(slotEnd);
+    const dayBlocks = (blocks || []).filter(
+      (b) =>
+        (b.dayOfWeek ? b.dayOfWeek === day : false) &&
+        toMinutes(b.start) === slotS
+    );
+    const dayEvents = (fixedEvents || []).filter(
+      (e) =>
+        (e.dayOfWeek ? e.dayOfWeek === day : true) && // events with no day apply to all
+        toMinutes(e.start) === slotS
+    );
+    return { dayBlocks, dayEvents };
+  };
 
-  const displayBlocks = isPreviewMode ? preview : blocks;
-  const displayEvents = isPreviewMode ? [] : (fixedEvents || []);
+  // Cell click to create a block prefilled with the slot times/day
+  const handleCellClick = (day: DayKey, slotStart: string, slotEnd: string) => {
+    setNewBlockForm((prev) => ({
+      ...prev,
+      start: slotStart,
+      end: slotEnd,
+      dayOfWeek: day,
+    }));
+    setShowAddDialog(true);
+  };
 
   return (
     <Card className="w-full">
@@ -386,142 +298,120 @@ export function StudyTimetable() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            <CardTitle>Study Timetable</CardTitle>
+            <CardTitle>Weekly Study Timetable</CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant={isPreviewMode ? "outline" : "default"}
-              size="sm"
-              onClick={() => setIsPreviewMode(!isPreviewMode)}
-            >
-              {isPreviewMode ? <Edit3 className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              {isPreviewMode ? "Edit" : "Preview"}
+            <Button variant="outline" size="sm" onClick={() => setShowAddDialog(true)}>
+              <Plus className="h-4 w-4" />
+              Block
             </Button>
-            {!isPreviewMode && (
-              <>
-                <Button variant="outline" size="sm" onClick={() => setShowAddDialog(true)}>
-                  <Plus className="h-4 w-4" />
-                  Block
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowEventDialog(true)}>
-                  <Plus className="h-4 w-4" />
-                  Event
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowSettingsDialog(true)}>
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </>
-            )}
+            <Button variant="outline" size="sm" onClick={() => setShowEventDialog(true)}>
+              <Plus className="h-4 w-4" />
+              Event
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowSettingsDialog(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="relative h-96 border rounded-lg overflow-hidden" ref={gridRef}>
-          {/* Hour lines */}
-          {hourLines.map((line) => (
-            <div
-              key={line.time}
-              className="absolute left-0 right-0 border-t border-muted-foreground/20 flex items-center"
-              style={{ top: `${line.percent}%` }}
-            >
-              <span className="text-xs text-muted-foreground bg-background px-2 py-1 rounded">
-                {line.time}
-              </span>
+        <div className="w-full overflow-x-auto">
+          <div className="min-w-[800px]">
+            <div className="grid" style={{ gridTemplateColumns: `160px repeat(${days.length}, 1fr)` }}>
+              {/* Header row */}
+              <div className="p-3 border-b text-sm font-semibold text-muted-foreground">Time</div>
+              {days.map((d) => (
+                <div key={d.key} className="p-3 border-b text-sm font-semibold">{d.label}</div>
+              ))}
+
+              {/* Time rows */}
+              {timeSlots.map((slot) => (
+                <div key={`${slot.start}-${slot.end}`} className="contents">
+                  {/* Time label */}
+                  <div className="p-2 border-b text-xs text-muted-foreground">
+                    {slot.start} – {slot.end}
+                  </div>
+                  {/* Day cells */}
+                  {days.map((d) => {
+                    const { dayBlocks, dayEvents } = itemsFor(d.key, slot.start, slot.end);
+                    const hasItem = dayBlocks.length > 0 || dayEvents.length > 0;
+
+                    return (
+                      <div
+                        key={`${d.key}-${slot.start}`}
+                        className={`p-2 border-b border-l relative group ${hasItem ? "bg-secondary/40" : "bg-background"} hover:shadow-sm transition`}
+                        onClick={() => handleCellClick(d.key, slot.start, slot.end)}
+                      >
+                        {/* Blocks */}
+                        {dayBlocks.map((b) => (
+                          <div
+                            key={b._id}
+                            className="rounded-md px-2 py-1 text-xs text-white shadow-sm flex items-center justify-between"
+                            style={{ backgroundColor: b.color || "#6b7280" }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBlock(b._id);
+                            }}
+                          >
+                            <span className="truncate">{b.label || "Block"}</span>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-white/90 hover:text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartSession(b.label || "Study Session");
+                                }}
+                              >
+                                Start
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteBlock(b._id);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Events */}
+                        {dayEvents.map((ev) => (
+                          <div
+                            key={ev._id}
+                            className="rounded-md px-2 py-1 mt-1 text-xs font-medium border"
+                            style={{
+                              backgroundColor: ev.color ? `${ev.color}20` : undefined,
+                              borderColor: ev.color || "#8b5cf6",
+                              color: "inherit",
+                            }}
+                          >
+                            <span className="truncate">
+                              {ev.label} ({ev.start}–{ev.end})
+                            </span>
+                          </div>
+                        ))}
+
+                        {/* Empty cell hint */}
+                        {!hasItem && (
+                          <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100">
+                            Click to add
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
-          ))}
-
-          {/* Fixed events */}
-          {displayEvents.map((event) => {
-            const startPercent = ((toMinutes(event.start) - dayStartMinutes) / totalMinutes) * 100;
-            const endPercent = ((toMinutes(event.end) - dayStartMinutes) / totalMinutes) * 100;
-            const height = endPercent - startPercent;
-
-            return (
-              <div
-                key={event._id}
-                className="absolute left-2 right-2 rounded-md border-2 border-purple-500 bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-xs font-medium z-20"
-                style={{
-                  top: `${startPercent}%`,
-                  height: `${height}%`,
-                  backgroundColor: event.color ? `${event.color}20` : undefined,
-                  borderColor: event.color || "#8b5cf6",
-                }}
-              >
-                <span className="text-center px-2">
-                  {event.label}
-                  <br />
-                  <span className="text-xs opacity-75">
-                    {event.start} - {event.end}
-                  </span>
-                </span>
-              </div>
-            );
-          })}
-
-          {/* Timetable blocks */}
-          {displayBlocks?.map((block) => {
-            const startPercent = ((toMinutes(block.start) - dayStartMinutes) / totalMinutes) * 100;
-            const endPercent = ((toMinutes(block.end) - dayStartMinutes) / totalMinutes) * 100;
-            const height = endPercent - startPercent;
-            const isSelected = selectedBlock === block._id;
-
-            return (
-              <motion.div
-                key={block._id}
-                data-block-id={block._id}
-                className={`absolute left-4 right-4 rounded-lg shadow-sm border-2 flex flex-col items-center justify-center text-xs font-medium cursor-pointer transition-all ${
-                  isSelected ? "ring-2 ring-primary ring-offset-2 z-30" : "z-10"
-                } ${!isPreviewMode ? "hover:shadow-md hover:scale-[1.02]" : ""}`}
-                style={{
-                  top: `${startPercent}%`,
-                  height: `${height}%`,
-                  backgroundColor: block.color || "#6b7280",
-                  borderColor: block.color || "#6b7280",
-                  color: "white",
-                }}
-                onPointerDown={(e) => handlePointerDown(e, block._id)}
-                onClick={() => setSelectedBlock(isSelected ? null : block._id)}
-                whileHover={!isPreviewMode ? { scale: 1.02 } : {}}
-                whileTap={!isPreviewMode ? { scale: 0.98 } : {}}
-              >
-                {!isPreviewMode && (
-                  <>
-                    {/* Resize handles */}
-                    <div
-                      className="absolute top-0 left-0 right-0 h-2 cursor-ns-resize opacity-0 hover:opacity-100 bg-white/20"
-                      onPointerDown={(e) => handlePointerDown(e, block._id, true, 'top')}
-                    />
-                    <div
-                      className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize opacity-0 hover:opacity-100 bg-white/20"
-                      onPointerDown={(e) => handlePointerDown(e, block._id, true, 'bottom')}
-                    />
-                  </>
-                )}
-                
-                <span className="text-center px-2">
-                  {block.label}
-                  <br />
-                  <span className="text-xs opacity-75">
-                    {block.start} - {block.end}
-                  </span>
-                </span>
-
-                {!isPreviewMode && isSelected && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="absolute -top-2 -right-2 h-6 w-6 p-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteBlock(block._id);
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                )}
-              </motion.div>
-            );
-          })}
+          </div>
         </div>
       </CardContent>
 
@@ -532,16 +422,36 @@ export function StudyTimetable() {
             <DialogTitle>Add Study Block</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Type</Label>
                 <select
                   className="w-full p-2 border rounded-md"
                   value={newBlockForm.kind}
-                  onChange={(e) => setNewBlockForm(prev => ({ ...prev, kind: e.target.value as "study" | "break" }))}
+                  onChange={(e) =>
+                    setNewBlockForm((prev) => ({ ...prev, kind: e.target.value as "study" | "break" }))
+                  }
                 >
                   <option value="study">Study</option>
                   <option value="break">Break</option>
+                </select>
+              </div>
+              <div>
+                <Label>Day</Label>
+                <select
+                  className="w-full p-2 border rounded-md"
+                  value={newBlockForm.dayOfWeek}
+                  onChange={(e) =>
+                    setNewBlockForm((prev) => ({ ...prev, dayOfWeek: e.target.value as DayKey }))
+                  }
+                >
+                  <option value="mon">Monday</option>
+                  <option value="tue">Tuesday</option>
+                  <option value="wed">Wednesday</option>
+                  <option value="thu">Thursday</option>
+                  <option value="fri">Friday</option>
+                  <option value="sat">Saturday</option>
+                  <option value="sun">Sunday</option>
                 </select>
               </div>
               {newBlockForm.kind === "study" && (
@@ -550,9 +460,9 @@ export function StudyTimetable() {
                   <select
                     className="w-full p-2 border rounded-md"
                     value={newBlockForm.subjectId}
-                    onChange={(e) => setNewBlockForm(prev => ({ ...prev, subjectId: e.target.value }))}
+                    onChange={(e) => setNewBlockForm((prev) => ({ ...prev, subjectId: e.target.value }))}
                   >
-                    <option value="">Select subject</option>
+                    <option value="select-subject">Select subject</option>
                     {subjects.map((subject) => (
                       <option key={subject._id} value={subject._id}>
                         {subject.name}
@@ -566,7 +476,7 @@ export function StudyTimetable() {
               <Label>Label (optional)</Label>
               <Input
                 value={newBlockForm.label}
-                onChange={(e) => setNewBlockForm(prev => ({ ...prev, label: e.target.value }))}
+                onChange={(e) => setNewBlockForm((prev) => ({ ...prev, label: e.target.value }))}
                 placeholder="Custom label"
               />
             </div>
@@ -576,7 +486,7 @@ export function StudyTimetable() {
                 <Input
                   type="time"
                   value={newBlockForm.start}
-                  onChange={(e) => setNewBlockForm(prev => ({ ...prev, start: e.target.value }))}
+                  onChange={(e) => setNewBlockForm((prev) => ({ ...prev, start: e.target.value }))}
                 />
               </div>
               <div>
@@ -584,7 +494,7 @@ export function StudyTimetable() {
                 <Input
                   type="time"
                   value={newBlockForm.end}
-                  onChange={(e) => setNewBlockForm(prev => ({ ...prev, end: e.target.value }))}
+                  onChange={(e) => setNewBlockForm((prev) => ({ ...prev, end: e.target.value }))}
                 />
               </div>
             </div>
@@ -605,13 +515,33 @@ export function StudyTimetable() {
             <DialogTitle>Add Fixed Event</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div>
-              <Label>Event Name</Label>
-              <Input
-                value={newEventForm.label}
-                onChange={(e) => setNewEventForm(prev => ({ ...prev, label: e.target.value }))}
-                placeholder="e.g., Isha Namaz"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Event Name</Label>
+                <Input
+                  value={newEventForm.label}
+                  onChange={(e) => setNewEventForm((prev) => ({ ...prev, label: e.target.value }))}
+                  placeholder="e.g., Isha Namaz"
+                />
+              </div>
+              <div>
+                <Label>Day</Label>
+                <select
+                  className="w-full p-2 border rounded-md"
+                  value={newEventForm.dayOfWeek}
+                  onChange={(e) =>
+                    setNewEventForm((prev) => ({ ...prev, dayOfWeek: e.target.value as DayKey }))
+                  }
+                >
+                  <option value="mon">Monday</option>
+                  <option value="tue">Tuesday</option>
+                  <option value="wed">Wednesday</option>
+                  <option value="thu">Thursday</option>
+                  <option value="fri">Friday</option>
+                  <option value="sat">Saturday</option>
+                  <option value="sun">Sunday</option>
+                </select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -619,7 +549,7 @@ export function StudyTimetable() {
                 <Input
                   type="time"
                   value={newEventForm.start}
-                  onChange={(e) => setNewEventForm(prev => ({ ...prev, start: e.target.value }))}
+                  onChange={(e) => setNewEventForm((prev) => ({ ...prev, start: e.target.value }))}
                 />
               </div>
               <div>
@@ -627,7 +557,7 @@ export function StudyTimetable() {
                 <Input
                   type="time"
                   value={newEventForm.end}
-                  onChange={(e) => setNewEventForm(prev => ({ ...prev, end: e.target.value }))}
+                  onChange={(e) => setNewEventForm((prev) => ({ ...prev, end: e.target.value }))}
                 />
               </div>
             </div>
@@ -636,7 +566,7 @@ export function StudyTimetable() {
               <Input
                 type="color"
                 value={newEventForm.color}
-                onChange={(e) => setNewEventForm(prev => ({ ...prev, color: e.target.value }))}
+                onChange={(e) => setNewEventForm((prev) => ({ ...prev, color: e.target.value }))}
               />
             </div>
           </div>
