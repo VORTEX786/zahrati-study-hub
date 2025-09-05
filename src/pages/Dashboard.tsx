@@ -304,6 +304,23 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 space-y-8">
+        {/* Ziaul Message Banner - eye-catching */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.05 }}
+          className="rounded-xl p-4 md:p-5 -mt-2 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border shadow-sm"
+        >
+          <p className="text-center text-base md:text-lg font-extrabold tracking-tight">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary">
+              Time is short, and competition is fierce. Push past your limits and trespass into the domain of genius.
+            </span>
+            <span className="block text-xs md:text-sm mt-1 font-semibold text-muted-foreground">
+              — Ziaul
+            </span>
+          </p>
+        </motion.div>
+
         {/* Welcome Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
