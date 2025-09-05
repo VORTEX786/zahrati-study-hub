@@ -164,6 +164,25 @@ export default function Landing() {
         </div>
       </nav>
 
+      {/* Ziaul Message Banner - eye-catching */}
+      <section className="container mx-auto px-4">
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="rounded-xl p-4 md:p-5 mb-4 md:mb-2 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border shadow-sm"
+        >
+          <p className="text-center text-lg md:text-xl font-extrabold tracking-tight">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary">
+              Study hard .. work hard .. and keep doing your best
+            </span>
+            <span className="block text-sm md:text-base mt-1 font-semibold text-muted-foreground">
+              — Ziaul
+            </span>
+          </p>
+        </motion.div>
+      </section>
+
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 text-center">
         <motion.div
