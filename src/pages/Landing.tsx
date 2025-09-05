@@ -140,11 +140,6 @@ export default function Landing() {
               {isAuthenticated ? "Go to Dashboard" : "Start Studying Today"}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span>Free to use • No credit card required</span>
-            </div>
           </motion.div>
         </motion.div>
       </section>
@@ -292,7 +287,7 @@ export default function Landing() {
             disabled={isLoading}
             className="text-lg px-8 py-6 rounded-xl bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
           >
-            {isAuthenticated ? "Continue Studying" : "Get Started for Free"}
+            {isAuthenticated ? "Continue Studying" : "Get Started"}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </motion.div>
