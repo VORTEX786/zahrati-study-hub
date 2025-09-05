@@ -7,12 +7,50 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { LogOut, Settings, User } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { toast } from "sonner";
 
 export default function Dashboard() {
   const { isLoading, isAuthenticated, user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // Add settings state
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [focusMinutes, setFocusMinutes] = useState<number>(25);
+  const [breakMinutes, setBreakMinutes] = useState<number>(5);
+
+  // Sync state when user data loads
+  useEffect(() => {
+    if (user) {
+      setFocusMinutes(user.focusDuration ?? 25);
+      setBreakMinutes(user.breakDuration ?? 5);
+    }
+  }, [user]);
+
+  const updateSettings = useMutation(api.studySessions.updateUserSettings);
+
+  const handleSaveSettings = async () => {
+    try {
+      // Basic validation
+      const f = Math.max(1, Math.min(180, Math.round(focusMinutes)));
+      const b = Math.max(1, Math.min(60, Math.round(breakMinutes)));
+
+      await updateSettings({ focusDuration: f, breakDuration: b });
+      toast("Timer settings updated", {
+        description: `Focus: ${f} min • Break: ${b} min`,
+      });
+      setSettingsOpen(false);
+    } catch (e) {
+      console.error(e);
+      toast("Failed to update settings");
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -67,7 +105,7 @@ export default function Dashboard() {
                 </span>
               </div>
               
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
                 <Settings className="h-4 w-4" />
               </Button>
               
@@ -78,6 +116,47 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      {/* Settings Dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Timer Settings</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="focus">Focus duration (minutes)</Label>
+              <Input
+                id="focus"
+                type="number"
+                min={1}
+                max={180}
+                value={Number.isFinite(focusMinutes) ? focusMinutes : 25}
+                onChange={(e) => setFocusMinutes(Number(e.target.value))}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="break">Break duration (minutes)</Label>
+              <Input
+                id="break"
+                type="number"
+                min={1}
+                max={60}
+                value={Number.isFinite(breakMinutes) ? breakMinutes : 5}
+                onChange={(e) => setBreakMinutes(Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSettingsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveSettings}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 space-y-8">
