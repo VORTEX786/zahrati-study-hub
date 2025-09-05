@@ -17,8 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState, useEffect } from "@/components/ui/table";
-import { useState } from "react";
+ // removed invalid hooks import from UI table
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
