@@ -30,14 +30,47 @@ const schema = defineSchema(
       isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
 
       role: v.optional(roleValidator), // role of the user. do not remove
+      
+      // Study tracker specific fields
+      currentStreak: v.optional(v.number()),
+      longestStreak: v.optional(v.number()),
+      totalStudyTime: v.optional(v.number()),
+      level: v.optional(v.number()),
+      badges: v.optional(v.array(v.string())),
+      focusDuration: v.optional(v.number()), // in minutes, default 25
+      breakDuration: v.optional(v.number()), // in minutes, default 5
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
-    // add other tables here
+    // Study sessions table
+    studySessions: defineTable({
+      userId: v.id("users"),
+      duration: v.number(), // in minutes
+      type: v.union(v.literal("focus"), v.literal("break")),
+      subject: v.optional(v.string()),
+      notes: v.optional(v.string()),
+      completed: v.boolean(),
+      date: v.string(), // YYYY-MM-DD format for easy querying
+    }).index("by_user_and_date", ["userId", "date"])
+      .index("by_user", ["userId"]),
 
-    // tableName: defineTable({
-    //   ...
-    //   // table fields
-    // }).index("by_field", ["field"])
+    // Daily goals table
+    dailyGoals: defineTable({
+      userId: v.id("users"),
+      date: v.string(), // YYYY-MM-DD format
+      targetSessions: v.number(),
+      targetMinutes: v.number(),
+      completedSessions: v.optional(v.number()),
+      completedMinutes: v.optional(v.number()),
+    }).index("by_user_and_date", ["userId", "date"])
+      .index("by_user", ["userId"]),
+
+    // Subjects table
+    subjects: defineTable({
+      userId: v.id("users"),
+      name: v.string(),
+      color: v.string(),
+      totalTime: v.optional(v.number()),
+    }).index("by_user", ["userId"]),
   },
   {
     schemaValidation: false,
