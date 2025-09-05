@@ -54,6 +54,7 @@ export function StudyTimetable() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showEventDialog, setShowEventDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const [newBlockForm, setNewBlockForm] = useState({
     kind: "study" as "study" | "break",
@@ -148,6 +149,15 @@ export function StudyTimetable() {
   const handleStartSession = useCallback((label: string) => {
     toast("Timer started", { description: label });
   }, []);
+
+  const [editBlockForm, setEditBlockForm] = useState({
+    blockId: "" as string,
+    subjectId: "",
+    label: "",
+    start: "18:00",
+    end: "19:00",
+    dayOfWeek: "mon" as DayKey,
+  });
 
   const handleAddBlock = async () => {
     if (!timetable) return;
@@ -270,6 +280,37 @@ export function StudyTimetable() {
     }
   };
 
+  const openEditBlock = (block: TimeBlock) => {
+    setEditBlockForm({
+      blockId: block._id as unknown as string,
+      subjectId: (block.subjectId as unknown as string) || "",
+      label: block.label || "",
+      start: block.start,
+      end: block.end,
+      dayOfWeek: (block as any).dayOfWeek || "mon",
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateBlock = async () => {
+    try {
+      await updateBlock({
+        blockId: editBlockForm.blockId as unknown as Id<"timetableBlocks">,
+        subjectId: editBlockForm.subjectId
+          ? (editBlockForm.subjectId as unknown as Id<"subjects">)
+          : undefined,
+        label: editBlockForm.label || undefined,
+        start: editBlockForm.start,
+        end: editBlockForm.end,
+        dayOfWeek: editBlockForm.dayOfWeek,
+      });
+      setShowEditDialog(false);
+      toast("Block updated");
+    } catch (error) {
+      toast("Failed to update block", { description: (error as Error).message });
+    }
+  };
+
   if (!timetable || !blocks || !subjects) {
     return (
       <Card>
@@ -287,6 +328,8 @@ export function StudyTimetable() {
     { key: "wed", label: "Wednesday" },
     { key: "thu", label: "Thursday" },
     { key: "fri", label: "Friday" },
+    { key: "sat", label: "Saturday" },
+    { key: "sun", label: "Sunday" },
   ];
   const timeSlots = buildTimeSlots(timetable.dayStart, timetable.dayEnd);
 
@@ -377,7 +420,7 @@ export function StudyTimetable() {
                             style={{ backgroundColor: b.color || "#6b7280" }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedBlock(b._id);
+                              openEditBlock(b);
                             }}
                           >
                             <span className="truncate">{b.label || "Block"}</span>
@@ -709,6 +752,152 @@ export function StudyTimetable() {
               Cancel
             </Button>
             <Button onClick={handleSaveSettings}>Save Settings</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Block Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Block</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Day</Label>
+                <select
+                  className="w-full p-2 border rounded-md"
+                  value={editBlockForm.dayOfWeek}
+                  onChange={(e) =>
+                    setEditBlockForm((prev) => ({ ...prev, dayOfWeek: e.target.value as DayKey }))
+                  }
+                >
+                  <option value="mon">Monday</option>
+                  <option value="tue">Tuesday</option>
+                  <option value="wed">Wednesday</option>
+                  <option value="thu">Thursday</option>
+                  <option value="fri">Friday</option>
+                  <option value="sat">Saturday</option>
+                  <option value="sun">Sunday</option>
+                </select>
+              </div>
+              {/* Subject only shown for study blocks. We infer by presence of subjectId or allow clear */}
+              <div className="col-span-2">
+                <Label>Subject (leave empty for Break)</Label>
+                <select
+                  className="w-full p-2 border rounded-md"
+                  value={editBlockForm.subjectId}
+                  onChange={(e) => setEditBlockForm((prev) => ({ ...prev, subjectId: e.target.value }))}
+                >
+                  <option value="">None (Break)</option>
+                  {subjects.map((subject) => (
+                    <option key={subject._id} value={subject._id as unknown as string}>
+                      {subject.name}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Inline create subject option */}
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  <Input
+                    placeholder="New subject name"
+                    className="col-span-2"
+                    value={newSubjectName}
+                    onChange={(e) => setNewSubjectName(e.target.value)}
+                  />
+                  <Input
+                    type="color"
+                    value={newSubjectColor}
+                    onChange={(e) => setNewSubjectColor(e.target.value)}
+                    title="Subject color"
+                  />
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        if (!newSubjectName.trim()) {
+                          toast("Enter a subject name first");
+                          return;
+                        }
+                        const sid = await createSubject({
+                          name: newSubjectName.trim(),
+                          color: newSubjectColor,
+                        });
+                        setEditBlockForm((prev) => ({
+                          ...prev,
+                          subjectId: sid as unknown as string,
+                        }));
+                        setNewSubjectName("");
+                        toast("Subject created");
+                      } catch (e) {
+                        toast("Failed to create subject", { description: (e as Error).message });
+                      }
+                    }}
+                  >
+                    Add Subject
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditBlockForm((prev) => ({ ...prev, subjectId: "" }))}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label>Label (optional)</Label>
+              <Input
+                value={editBlockForm.label}
+                onChange={(e) => setEditBlockForm((prev) => ({ ...prev, label: e.target.value }))}
+                placeholder="Custom label"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Start Time</Label>
+                <Input
+                  type="time"
+                  value={editBlockForm.start}
+                  onChange={(e) => setEditBlockForm((prev) => ({ ...prev, start: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>End Time</Label>
+                <Input
+                  type="time"
+                  value={editBlockForm.end}
+                  onChange={(e) => setEditBlockForm((prev) => ({ ...prev, end: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                try {
+                  await deleteBlock({ blockId: editBlockForm.blockId as unknown as Id<"timetableBlocks"> });
+                  setShowEditDialog(false);
+                  toast("Block deleted");
+                } catch (e) {
+                  toast("Failed to delete block", { description: (e as Error).message });
+                }
+              }}
+            >
+              Delete
+            </Button>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateBlock}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
