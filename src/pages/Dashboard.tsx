@@ -37,9 +37,24 @@ export default function Dashboard() {
 
   const handleSaveSettings = async () => {
     try {
-      // Basic validation
-      const f = Math.max(1, Math.min(180, Math.round(focusMinutes)));
-      const b = Math.max(1, Math.min(60, Math.round(breakMinutes)));
+      // Validate before saving
+      const invalidFocus =
+        !Number.isFinite(focusMinutes) || focusMinutes < 1 || focusMinutes > 180;
+      const invalidBreak =
+        !Number.isFinite(breakMinutes) || breakMinutes < 1 || breakMinutes > 60;
+
+      if (invalidFocus || invalidBreak) {
+        toast("Please fix the highlighted fields", {
+          description:
+            (invalidFocus ? "Focus must be between 1 and 180 minutes. " : "") +
+            (invalidBreak ? "Break must be between 1 and 60 minutes." : ""),
+        });
+        return;
+      }
+
+      // Basic normalization
+      const f = Math.round(focusMinutes);
+      const b = Math.round(breakMinutes);
 
       await updateSettings({ focusDuration: f, breakDuration: b });
       toast("Timer settings updated", {
@@ -134,6 +149,12 @@ export default function Dashboard() {
                 value={Number.isFinite(focusMinutes) ? focusMinutes : 25}
                 onChange={(e) => setFocusMinutes(Number(e.target.value))}
               />
+              {/* Inline validation message */}
+              {(!Number.isFinite(focusMinutes) || focusMinutes < 1 || focusMinutes > 180) && (
+                <span className="text-xs text-red-500">
+                  Enter a value between 1 and 180 minutes.
+                </span>
+              )}
             </div>
             <div className="grid grid-cols-1 gap-2">
               <Label htmlFor="break">Break duration (minutes)</Label>
@@ -145,13 +166,29 @@ export default function Dashboard() {
                 value={Number.isFinite(breakMinutes) ? breakMinutes : 5}
                 onChange={(e) => setBreakMinutes(Number(e.target.value))}
               />
+              {/* Inline validation message */}
+              {(!Number.isFinite(breakMinutes) || breakMinutes < 1 || breakMinutes > 60) && (
+                <span className="text-xs text-red-500">
+                  Enter a value between 1 and 60 minutes.
+                </span>
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSettingsOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveSettings}>
+            <Button
+              onClick={handleSaveSettings}
+              disabled={
+                !Number.isFinite(focusMinutes) ||
+                focusMinutes < 1 ||
+                focusMinutes > 180 ||
+                !Number.isFinite(breakMinutes) ||
+                breakMinutes < 1 ||
+                breakMinutes > 60
+              }
+            >
               Save
             </Button>
           </DialogFooter>
