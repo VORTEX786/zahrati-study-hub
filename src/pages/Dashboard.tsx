@@ -6,13 +6,13 @@ import { StudyRatioTracker } from "@/components/StudyRatioTracker";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import { LogOut, Settings, User } from "lucide-react";
+import { LogOut, Settings, User, Target } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 
@@ -25,6 +25,11 @@ export default function Dashboard() {
   const [focusMinutes, setFocusMinutes] = useState<number>(25);
   const [breakMinutes, setBreakMinutes] = useState<number>(5);
 
+  // Goal dialog state
+  const [goalOpen, setGoalOpen] = useState(false);
+  const [targetSessions, setTargetSessions] = useState<number>(4);
+  const [targetMinutes, setTargetMinutes] = useState<number>(120);
+
   // Sync state when user data loads
   useEffect(() => {
     if (user) {
@@ -33,7 +38,17 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  // Load today's goal to prefill fields
+  const todayGoal = useQuery(api.dailyGoals.getTodayGoal);
+  useEffect(() => {
+    if (todayGoal) {
+      setTargetSessions(todayGoal.targetSessions ?? 4);
+      setTargetMinutes(todayGoal.targetMinutes ?? 120);
+    }
+  }, [todayGoal]);
+
   const updateSettings = useMutation(api.studySessions.updateUserSettings);
+  const saveGoal = useMutation(api.dailyGoals.createOrUpdateDailyGoal);
 
   const handleSaveSettings = async () => {
     try {
@@ -64,6 +79,35 @@ export default function Dashboard() {
     } catch (e) {
       console.error(e);
       toast("Failed to update settings");
+    }
+  };
+
+  const handleSaveGoal = async () => {
+    try {
+      const invalidSessions =
+        !Number.isFinite(targetSessions) || targetSessions < 1 || targetSessions > 12;
+      const invalidMinutes =
+        !Number.isFinite(targetMinutes) || targetMinutes < 15 || targetMinutes > 600;
+
+      if (invalidSessions || invalidMinutes) {
+        toast("Please fix the highlighted fields", {
+          description:
+            (invalidSessions ? "Sessions must be between 1 and 12. " : "") +
+            (invalidMinutes ? "Minutes must be between 15 and 600." : ""),
+        });
+        return;
+      }
+
+      const s = Math.round(targetSessions);
+      const m = Math.round(targetMinutes);
+      await saveGoal({ targetSessions: s, targetMinutes: m });
+      toast("Daily goal updated", {
+        description: `Sessions: ${s} • Minutes: ${m}`,
+      });
+      setGoalOpen(false);
+    } catch (e) {
+      console.error(e);
+      toast("Failed to update goal");
     }
   };
 
@@ -120,8 +164,8 @@ export default function Dashboard() {
                 </span>
               </div>
               
-              <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
-                <Settings className="h-4 w-4" />
+              <Button variant="ghost" size="sm" onClick={() => setGoalOpen(true)}>
+                <Target className="h-4 w-4" />
               </Button>
               
               <Button variant="ghost" size="sm" onClick={() => signOut()}>
@@ -187,6 +231,64 @@ export default function Dashboard() {
                 !Number.isFinite(breakMinutes) ||
                 breakMinutes < 1 ||
                 breakMinutes > 60
+              }
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Goal Dialog */}
+      <Dialog open={goalOpen} onOpenChange={setGoalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set Daily Goal</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="sessions">Target sessions</Label>
+              <Input
+                id="sessions"
+                type="number"
+                min={1}
+                max={12}
+                value={Number.isFinite(targetSessions) ? targetSessions : 4}
+                onChange={(e) => setTargetSessions(Number(e.target.value))}
+              />
+              {(!Number.isFinite(targetSessions) || targetSessions < 1 || targetSessions > 12) && (
+                <span className="text-xs text-red-500">Enter a value between 1 and 12 sessions.</span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="minutes">Target minutes</Label>
+              <Input
+                id="minutes"
+                type="number"
+                min={15}
+                max={600}
+                value={Number.isFinite(targetMinutes) ? targetMinutes : 120}
+                onChange={(e) => setTargetMinutes(Number(e.target.value))}
+              />
+              {(!Number.isFinite(targetMinutes) || targetMinutes < 15 || targetMinutes > 600) && (
+                <span className="text-xs text-red-500">Enter a value between 15 and 600 minutes.</span>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGoalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveGoal}
+              disabled={
+                !Number.isFinite(targetSessions) ||
+                targetSessions < 1 ||
+                targetSessions > 12 ||
+                !Number.isFinite(targetMinutes) ||
+                targetMinutes < 15 ||
+                targetMinutes > 600
               }
             >
               Save
