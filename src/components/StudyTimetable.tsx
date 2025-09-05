@@ -64,6 +64,10 @@ export function StudyTimetable() {
     dayOfWeek: "mon" as DayKey,
   });
 
+  // ADD: inline new subject inputs for quick creation
+  const [newSubjectName, setNewSubjectName] = useState("");
+  const [newSubjectColor, setNewSubjectColor] = useState("#3b82f6");
+
   const [newEventForm, setNewEventForm] = useState({
     label: "",
     start: "20:00",
@@ -99,6 +103,8 @@ export function StudyTimetable() {
   const upsertFixedEvent = useMutation(api.timetable.upsertFixedEvent);
   const deleteFixedEvent = useMutation(api.timetable.deleteFixedEvent);
   const ensureTimetable = useMutation(api.timetable.createDefaultTimetable);
+  // ADD: create subject mutation for inline subject creation
+  const createSubject = useMutation(api.subjects.createSubject);
 
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -150,13 +156,31 @@ export function StudyTimetable() {
       let color = "#6b7280";
       let label = newBlockForm.label;
 
-      if (newBlockForm.kind === "study" && newBlockForm.subjectId) {
-        const subject = subjects?.find(
-          (s) => s._id === (newBlockForm.subjectId as unknown as Id<"subjects">)
-        );
-        if (subject) {
-          color = subject.color;
-          label = label || subject.name;
+      // Determine subject to use (selected or create new if provided)
+      let subjectIdToUse: Id<"subjects"> | undefined = undefined;
+      if (newBlockForm.kind === "study") {
+        if (newBlockForm.subjectId) {
+          subjectIdToUse = newBlockForm.subjectId as unknown as Id<"subjects">;
+        } else if (newSubjectName.trim()) {
+          // Create a new subject inline
+          subjectIdToUse = await createSubject({
+            name: newSubjectName.trim(),
+            color: newSubjectColor,
+          });
+        }
+      }
+
+      if (newBlockForm.kind === "study") {
+        if (subjectIdToUse) {
+          const subject = subjects?.find((s) => s._id === subjectIdToUse);
+          if (subject) {
+            color = subject.color;
+            label = label || subject.name;
+          } else {
+            // Fallback if list hasn't updated yet (newly created subject)
+            color = newSubjectColor;
+            label = label || newSubjectName.trim();
+          }
         }
       } else if (newBlockForm.kind === "break") {
         label = label || "Break";
@@ -165,9 +189,7 @@ export function StudyTimetable() {
       await createBlock({
         timetableId: timetable._id,
         kind: newBlockForm.kind,
-        subjectId: newBlockForm.subjectId
-          ? (newBlockForm.subjectId as unknown as Id<"subjects">)
-          : undefined,
+        subjectId: subjectIdToUse,
         label,
         color,
         start: newBlockForm.start,
@@ -184,6 +206,10 @@ export function StudyTimetable() {
         end: "19:00",
         dayOfWeek: newBlockForm.dayOfWeek,
       });
+      // RESET: inline subject inputs
+      setNewSubjectName("");
+      setNewSubjectColor("#3b82f6");
+
       toast("Block added successfully");
     } catch (error) {
       toast("Failed to add block", { description: (error as Error).message });
@@ -462,13 +488,35 @@ export function StudyTimetable() {
                     value={newBlockForm.subjectId}
                     onChange={(e) => setNewBlockForm((prev) => ({ ...prev, subjectId: e.target.value }))}
                   >
-                    <option value="select-subject">Select subject</option>
+                    <option value="">Select subject</option>
                     {subjects.map((subject) => (
                       <option key={subject._id} value={subject._id}>
                         {subject.name}
                       </option>
                     ))}
                   </select>
+
+                  {/* Inline create subject option */}
+                  <div className="mt-2 space-y-1.5">
+                    <Label>Or add a new subject</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input
+                        placeholder="Subject name"
+                        className="col-span-2"
+                        value={newSubjectName}
+                        onChange={(e) => setNewSubjectName(e.target.value)}
+                      />
+                      <Input
+                        type="color"
+                        value={newSubjectColor}
+                        onChange={(e) => setNewSubjectColor(e.target.value)}
+                        title="Subject color"
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">
+                      If you provide a new subject name, it will be created and used for this block.
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
