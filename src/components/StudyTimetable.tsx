@@ -55,6 +55,14 @@ export function StudyTimetable() {
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+const [editBlockForm, setEditBlockForm] = useState({
+  blockId: "" as string,
+  subjectId: "" as string,
+  label: "",
+  start: "18:00",
+  end: "19:00",
+  dayOfWeek: "mon" as DayKey,
+});
 
   const [newBlockForm, setNewBlockForm] = useState({
     kind: "study" as "study" | "break",
@@ -149,15 +157,6 @@ export function StudyTimetable() {
   const handleStartSession = useCallback((label: string) => {
     toast("Timer started", { description: label });
   }, []);
-
-  const [editBlockForm, setEditBlockForm] = useState({
-    blockId: "" as string,
-    subjectId: "",
-    label: "",
-    start: "18:00",
-    end: "19:00",
-    dayOfWeek: "mon" as DayKey,
-  });
 
   const handleAddBlock = async () => {
     if (!timetable) return;
