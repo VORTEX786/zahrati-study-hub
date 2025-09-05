@@ -168,6 +168,9 @@ export default function Dashboard() {
               <Button variant="ghost" size="sm" onClick={() => setGoalOpen(true)}>
                 <Target className="h-4 w-4" />
               </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+                <Settings className="h-4 w-4" />
+              </Button>
               
               <Button variant="ghost" size="sm" onClick={() => signOut()}>
                 <LogOut className="h-4 w-4" />
