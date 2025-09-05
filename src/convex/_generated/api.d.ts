@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as lifeGoals from "../lifeGoals.js";
 import type * as studySessions from "../studySessions.js";
 import type * as subjects from "../subjects.js";
+import type * as timetable from "../timetable.js";
 import type * as users from "../users.js";
 
 /**
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   lifeGoals: typeof lifeGoals;
   studySessions: typeof studySessions;
   subjects: typeof subjects;
+  timetable: typeof timetable;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

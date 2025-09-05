@@ -80,6 +80,39 @@ const schema = defineSchema(
       targetDate: v.optional(v.string()), // YYYY-MM-DD
       completed: v.optional(v.boolean()),
     }).index("by_user", ["userId"]),
+
+    // Timetables table
+    timetables: defineTable({
+      userId: v.id("users"),
+      title: v.optional(v.string()),
+      dayStart: v.string(), // HH:MM format
+      dayEnd: v.string(), // HH:MM format
+      breakDefaultMinutes: v.optional(v.number()),
+      rotateLastBlock: v.optional(v.boolean()),
+      weakSubjectIds: v.optional(v.array(v.id("subjects"))),
+    }).index("by_user", ["userId"]),
+
+    // Timetable blocks table
+    timetableBlocks: defineTable({
+      timetableId: v.id("timetables"),
+      kind: v.union(v.literal("study"), v.literal("break"), v.literal("fixed")),
+      subjectId: v.optional(v.id("subjects")),
+      label: v.optional(v.string()),
+      color: v.optional(v.string()),
+      start: v.string(), // HH:MM format
+      end: v.string(), // HH:MM format
+      locked: v.optional(v.boolean()),
+    }).index("by_timetable", ["timetableId"])
+      .index("by_timetable_and_start", ["timetableId", "start"]),
+
+    // Fixed events table
+    fixedEvents: defineTable({
+      userId: v.id("users"),
+      label: v.string(),
+      start: v.string(), // HH:MM format
+      end: v.string(), // HH:MM format
+      color: v.optional(v.string()),
+    }).index("by_user", ["userId"]),
   },
   {
     schemaValidation: false,

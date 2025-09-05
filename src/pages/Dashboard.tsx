@@ -17,6 +17,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { StudyInsights } from "@/components/StudyInsights";
+import { StudyTimetable } from "@/components/StudyTimetable";
 
 export default function Dashboard() {
   const { isLoading, isAuthenticated, user, signOut } = useAuth();
@@ -368,6 +369,8 @@ export default function Dashboard() {
             <StreakCounter />
             {/* Life Goals Card */}
             <LifeGoals />
+            {/* Study Timetable */}
+            <StudyTimetable />
             {/* Study Insights */}
             <StudyInsights />
           </motion.div>
