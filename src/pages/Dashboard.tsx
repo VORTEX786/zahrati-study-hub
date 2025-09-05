@@ -17,6 +17,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { StudyInsights } from "@/components/StudyInsights";
+import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function Dashboard() {
   const { isLoading, isAuthenticated, user, signOut } = useAuth();
@@ -51,6 +53,20 @@ export default function Dashboard() {
 
   const updateSettings = useMutation(api.studySessions.updateUserSettings);
   const saveGoal = useMutation(api.dailyGoals.createOrUpdateDailyGoal);
+
+  // Add: static weekly timetable data (Mon–Fri) for visual schedule
+  const weekdays: Array<string> = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+  const timetableSlots: Array<{ time: string; label: string; type: "study" | "event" | "break"; color?: string }> = [
+    { time: "6:30 PM – 7:15 PM", label: "English", type: "study", color: "#3b82f6" },
+    { time: "7:15 PM – 8:00 PM", label: "Maths", type: "study", color: "#10b981" },
+    { time: "8:00 PM – 8:15 PM", label: "Isha Namaz", type: "event", color: "#8b5cf6" },
+    { time: "8:15 PM – 9:00 PM", label: "BETF", type: "study", color: "#f59e0b" },
+    { time: "9:00 PM – 9:30 PM", label: "Break / Snack / Relax", type: "break", color: "#6b7280" },
+    { time: "9:30 PM – 10:15 PM", label: "CHGCH", type: "study", color: "#ef4444" },
+    { time: "10:15 PM – 11:00 PM", label: "PAAHU", type: "study", color: "#22c55e" },
+    { time: "11:00 PM – 11:45 PM", label: "Rotate / Weak Subject", type: "study", color: "#14b8a6" },
+    { time: "11:45 PM – 12:00 AM", label: "Quick Recap / Plan Next Day", type: "event", color: "#6366f1" },
+  ];
 
   const handleSaveSettings = async () => {
     try {
@@ -334,6 +350,115 @@ export default function Dashboard() {
           <p className="text-muted-foreground text-lg">
             Ready to make today productive? Let's start studying!
           </p>
+        </motion.div>
+
+        {/* Visual Weekly Study Timetable (Mon–Fri) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.22 }}
+          className="max-w-6xl mx-auto w-full"
+        >
+          <Card className="border-0 bg-card/60 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="mb-6 text-center space-y-2">
+                <h3 className="text-2xl md:text-3xl font-bold tracking-tight">Weekly Study Timetable</h3>
+                <p className="text-sm text-muted-foreground">
+                  A clear view of your evening study plan. Special highlights for prayers and breaks.
+                </p>
+              </div>
+
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[800px]">
+                  <TableHeader>
+                    <TableRow className="border-muted">
+                      <TableHead className="w-48 text-muted-foreground">Time</TableHead>
+                      {weekdays.map((day) => (
+                        <TableHead key={day} className="text-center font-semibold">
+                          {day}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {timetableSlots.map((slot, idx) => (
+                      <TableRow key={idx} className="border-muted/70">
+                        <TableCell className="font-medium text-muted-foreground">{slot.time}</TableCell>
+
+                        {weekdays.map((day) => {
+                          const bg =
+                            slot.type === "study"
+                              ? slot.color ?? "#3b82f6"
+                              : slot.type === "event"
+                              ? (slot.color ?? "#8b5cf6") + "20"
+                              : (slot.color ?? "#6b7280") + "20";
+                          const isStudy = slot.type === "study";
+                          const isBreak = slot.type === "break";
+                          const border = isBreak ? "border border-dashed border-muted-foreground/40" : "border";
+
+                          return (
+                            <TableCell key={day} className="p-2">
+                              <div
+                                className={`rounded-md px-3 py-2 text-xs md:text-sm font-medium shadow-sm ${border}`}
+                                style={{
+                                  backgroundColor: isStudy ? bg : bg,
+                                  color: isStudy ? "#ffffff" : "inherit",
+                                  borderColor: !isStudy ? slot.color : undefined,
+                                }}
+                              >
+                                {slot.type !== "study" && (
+                                  <div
+                                    className="rounded-md px-2 py-1 text-xs mb-1 inline-block"
+                                    style={{
+                                      backgroundColor: (slot.color ?? "#8b5cf6") + "20",
+                                      borderColor: slot.color ?? "#8b5cf6",
+                                      borderWidth: 1,
+                                    }}
+                                  >
+                                    {slot.label}
+                                  </div>
+                                )}
+                                {slot.type === "study" && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="truncate">{slot.label}</span>
+                                    <span className="opacity-80 text-[10px]">Focus</span>
+                                  </div>
+                                )}
+                                {slot.type === "break" && <span className="text-xs">{slot.label}</span>}
+                                {slot.type === "event" && <span className="text-xs">{slot.label}</span>}
+                              </div>
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* Legend */}
+                <div className="flex flex-wrap gap-3 mt-6 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: "#3b82f6" }}></span>
+                    Study Session
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="inline-block w-3 h-3 rounded border"
+                      style={{ backgroundColor: "#8b5cf620", borderColor: "#8b5cf6" }}
+                    ></span>
+                    Isha Namaz / Event
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="inline-block w-3 h-3 rounded border border-dashed"
+                      style={{ backgroundColor: "#6b728020", borderColor: "#9ca3af" }}
+                    ></span>
+                    Break / Snack / Relax
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Dashboard Stats */}
