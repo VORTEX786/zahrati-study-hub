@@ -60,6 +60,7 @@ export function StudyTimetable() {
     isResizing: boolean;
     resizeHandle: 'top' | 'bottom' | null;
   } | null>(null);
+  const [seeding, setSeeding] = useState(false);
 
   // Form states
   const [newBlockForm, setNewBlockForm] = useState({
@@ -105,14 +106,18 @@ export function StudyTimetable() {
   const deleteFixedEvent = useMutation(api.timetable.deleteFixedEvent);
   const createDefaultTimetable = useMutation(api.timetable.createDefaultTimetable);
 
-  // Ensure a default timetable exists (run once when query returns null)
+  // Ensure a timetable exists: seed once if not found
   useEffect(() => {
-    if (timetable === null) {
-      createDefaultTimetable().catch((err) =>
-        toast("Failed to initialize timetable", { description: String(err?.message || err) })
-      );
+    if (timetable === null && !seeding) {
+      setSeeding(true);
+      createDefaultTimetable({})
+        .catch((e) => {
+          console.error(e);
+          toast("Failed to initialize timetable", { description: (e as Error).message });
+        })
+        .finally(() => setSeeding(false));
     }
-  }, [timetable, createDefaultTimetable]);
+  }, [timetable, seeding, createDefaultTimetable]);
 
   const gridRef = useRef<HTMLDivElement>(null);
 
