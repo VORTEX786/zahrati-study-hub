@@ -442,7 +442,7 @@ export default function Landing() {
             </div>
             
             <div className="text-sm text-muted-foreground text-center">
-              Study Tracker by Ziaul • Built with ❤️ just for my ZIU
+              Study Tracker by Ziaul • Built with ❤️
             </div>
           </div>
         </div>
