@@ -192,15 +192,14 @@ export default function Landing() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            {isAuthenticated ? (
-              <Button 
-                onClick={() => navigate("/dashboard")}
-                disabled={isLoading}
-                variant="outline"
-              >
-                Dashboard
-              </Button>
-            ) : null}
+            {/* Always show Go to Dashboard */}
+            <Button 
+              onClick={() => navigate("/dashboard")}
+              disabled={isLoading}
+              variant="outline"
+            >
+              Go to Dashboard
+            </Button>
           </motion.div>
         </div>
       </nav>
@@ -247,17 +246,16 @@ export default function Landing() {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
-            {isAuthenticated ? (
-              <Button 
-                size="lg" 
-                onClick={() => navigate("/dashboard")}
-                disabled={isLoading}
-                className="text-lg px-8 py-6 rounded-xl"
-              >
-                Go to Dashboard
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            ) : null}
+            {/* Always show primary CTA to Dashboard */}
+            <Button 
+              size="lg" 
+              onClick={() => navigate("/dashboard")}
+              disabled={isLoading}
+              className="text-lg px-8 py-6 rounded-xl"
+            >
+              Go to Dashboard
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </motion.div>
         </motion.div>
       </section>
@@ -419,17 +417,16 @@ export default function Landing() {
             </p>
           </div>
 
-          {isAuthenticated ? (
-            <Button 
-              size="lg" 
-              onClick={() => navigate("/dashboard")}
-              disabled={isLoading}
-              className="text-lg px-8 py-6 rounded-xl bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
-            >
-              Continue Studying
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          ) : null}
+          {/* Always show CTA to Dashboard */}
+          <Button 
+            size="lg" 
+            onClick={() => navigate("/dashboard")}
+            disabled={isLoading}
+            className="text-lg px-8 py-6 rounded-xl bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
+          >
+            Go to Dashboard
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
         </motion.div>
       </section>
 
@@ -445,7 +442,7 @@ export default function Landing() {
             </div>
             
             <div className="text-sm text-muted-foreground text-center">
-              Study Tracker by Ziaul • Built with ❤️ for students everywhere
+              Study Tracker by Ziaul • Built with ❤️ just for mt ziu
             </div>
           </div>
         </div>
