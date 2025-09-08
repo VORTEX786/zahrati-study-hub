@@ -635,6 +635,59 @@ export default function Dashboard() {
         </motion.div>
         {/* End Countdown */}
 
+        {/* 2025 Fiji Year 13 Certificate Examination Timetable */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.26 }}
+          className="max-w-6xl mx-auto w-full"
+        >
+          <Card className="border-0 bg-card/60 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="mb-6 text-center space-y-2">
+                <h3 className="text-2xl md:text-3xl font-bold tracking-tight">
+                  2025 Fiji Year 13 Certificate Examination Timetable
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Stay prepared — key exam dates at a glance.
+                </p>
+              </div>
+
+              <div className="space-y-8">
+                {examSchedule.map((section) => (
+                  <div key={section.month} className="space-y-3">
+                    <h4 className="text-xl font-semibold">{section.month}</h4>
+                    <div className="w-full overflow-x-auto">
+                      <Table className="min-w-[640px]">
+                        <TableHeader>
+                          <TableRow className="border-muted">
+                            <TableHead className="w-56 text-muted-foreground">Date</TableHead>
+                            <TableHead>Subject</TableHead>
+                            <TableHead className="w-56 text-center">Time</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {section.days.flatMap((d) =>
+                            d.exams.map((exam, idx) => (
+                              <TableRow key={`${d.date}-${exam.subject}-${idx}`} className="border-muted/70">
+                                <TableCell className="font-medium text-muted-foreground">
+                                  {d.date}
+                                </TableCell>
+                                <TableCell className="font-medium">{exam.subject}</TableCell>
+                                <TableCell className="text-center">{exam.time}</TableCell>
+                              </TableRow>
+                            )),
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Visual Weekly Study Timetable (Mon–Fri) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -737,166 +790,6 @@ export default function Dashboard() {
                       style={{ backgroundColor: "#6b728020", borderColor: "#9ca3af" }}
                     ></span>
                     Break / Snack / Relax
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* 2025 Fiji Year 13 Certificate Examination Timetable */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.26 }}
-          className="max-w-6xl mx-auto w-full"
-        >
-          <Card className="border-0 bg-card/60 backdrop-blur-sm mt-6">
-            <CardContent className="p-6">
-              <div className="mb-6 text-center space-y-2">
-                <h3 className="text-2xl md:text-3xl font-bold tracking-tight">
-                  2025 Fiji Year 13 Certificate Examination Timetable
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Stay prepared — key exam dates at a glance.
-                </p>
-              </div>
-
-              <div className="space-y-8">
-                {examSchedule.map((section) => (
-                  <div key={section.month} className="space-y-3">
-                    <h4 className="text-xl font-semibold">{section.month}</h4>
-                    <div className="w-full overflow-x-auto">
-                      <Table className="min-w-[640px]">
-                        <TableHeader>
-                          <TableRow className="border-muted">
-                            <TableHead className="w-56 text-muted-foreground">Date</TableHead>
-                            <TableHead>Subject</TableHead>
-                            <TableHead className="w-56 text-center">Time</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {section.days.flatMap((d) =>
-                            d.exams.map((exam, idx) => (
-                              <TableRow key={`${d.date}-${exam.subject}-${idx}`} className="border-muted/70">
-                                <TableCell className="font-medium text-muted-foreground">
-                                  {d.date}
-                                </TableCell>
-                                <TableCell className="font-medium">{exam.subject}</TableCell>
-                                <TableCell className="text-center">{exam.time}</TableCell>
-                              </TableRow>
-                            )),
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* ADD: Weekend Study Timetable (Sat–Sun) */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.24 }}
-          className="max-w-6xl mx-auto w-full"
-        >
-          <Card className="border-0 bg-card/60 backdrop-blur-sm mt-6">
-            <CardContent className="p-6">
-              <div className="mb-6 text-center space-y-2">
-                <h3 className="text-2xl md:text-3xl font-bold tracking-tight">Weekend Study Timetable</h3>
-                <p className="text-sm text-muted-foreground">
-                  A minimal, motivating plan for Saturday & Sunday with clear breaks and prayer highlights.
-                </p>
-              </div>
-
-              <div className="w-full overflow-x-auto">
-                <Table className="min-w-[640px]">
-                  <TableHeader>
-                    <TableRow className="border-muted">
-                      <TableHead className="w-48 text-muted-foreground">Time</TableHead>
-                      {weekendDays.map((day) => (
-                        <TableHead key={day} className="text-center font-semibold">
-                          {day}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {weekendSlots.map((slot, idx) => (
-                      <TableRow key={idx} className="border-muted/70">
-                        <TableCell className="font-medium text-muted-foreground">{slot.time}</TableCell>
-                        {weekendDays.map((day) => {
-                          const isStudy = slot.type === "study";
-                          const bg =
-                            isStudy
-                              ? slot.color ?? "#3b82f6"
-                              : slot.type === "event"
-                              ? (slot.color ?? "#8b5cf6") + "20"
-                              : (slot.color ?? "#6b7280") + "20";
-                          const border = slot.type === "break" ? "border border-dashed border-muted-foreground/40" : "border";
-
-                          return (
-                            <TableCell key={day} className="p-2">
-                              <div
-                                className={`rounded-md px-3 py-2 text-xs md:text-sm font-medium shadow-sm ${border}`}
-                                style={{
-                                  backgroundColor: bg,
-                                  color: isStudy ? "#ffffff" : "inherit",
-                                  borderColor: !isStudy ? slot.color : undefined,
-                                }}
-                              >
-                                {slot.type !== "study" && (
-                                  <div
-                                    className="rounded-md px-2 py-1 text-xs mb-1 inline-block"
-                                    style={{
-                                      backgroundColor: (slot.color ?? "#8b5cf6") + "20",
-                                      borderColor: slot.color ?? "#8b5cf6",
-                                      borderWidth: 1,
-                                    }}
-                                  >
-                                    {slot.label}
-                                  </div>
-                                )}
-                                {slot.type === "study" && (
-                                  <div className="flex items-center justify-between">
-                                    <span className="truncate">{slot.label}</span>
-                                    <span className="opacity-80 text-[10px]">Focus</span>
-                                  </div>
-                                )}
-                                {slot.type === "break" && <span className="text-xs">{slot.label}</span>}
-                                {slot.type === "event" && <span className="text-xs">{slot.label}</span>}
-                              </div>
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                {/* Legend */}
-                <div className="flex flex-wrap gap-3 mt-6 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: "#10b981" }}></span>
-                    Study Session
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="inline-block w-3 h-3 rounded border"
-                      style={{ backgroundColor: "#8b5cf620", borderColor: "#8b5cf6" }}
-                    ></span>
-                    Isha Namaz / Event
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="inline-block w-3 h-3 rounded border border-dashed"
-                      style={{ backgroundColor: "#9ca3af20", borderColor: "#9ca3af" }}
-                    ></span>
-                    Breaks
                   </div>
                 </div>
               </div>
