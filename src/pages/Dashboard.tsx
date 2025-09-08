@@ -52,6 +52,59 @@ export default function Dashboard() {
   const [logSubject, setLogSubject] = useState<string>("");
   const [logNotes, setLogNotes] = useState<string>("");
 
+  // ADD: 2025 Fiji Year 13 Certificate Examination Timetable
+  const examSchedule: Array<{
+    month: string;
+    days: Array<{
+      date: string;
+      exams: Array<{ subject: string; time: string }>;
+    }>;
+  }> = [
+    {
+      month: "October",
+      days: [
+        { date: "Monday, 12 Oct", exams: [{ subject: "English", time: "9:00 am – 12:10 pm" }] },
+        { date: "Tuesday, 13 Oct", exams: [{ subject: "Geography", time: "9:00 am – 12:10 pm" }] },
+        {
+          date: "Wednesday, 14 Oct",
+          exams: [
+            { subject: "Accounting", time: "9:00 am – 12:10 pm" },
+            { subject: "Biology", time: "2:00 pm – 5:10 pm" },
+            { subject: "Agriculture", time: "2:00 pm – 5:10 pm" },
+          ],
+        },
+        { date: "Friday, 16 Oct", exams: [{ subject: "Physics", time: "9:00 am – 12:10 pm" }] },
+      ],
+    },
+    {
+      month: "November",
+      days: [
+        {
+          date: "Monday, 3 Nov",
+          exams: [
+            { subject: "Pure Mathematics", time: "9:00 am – 12:10 pm" },
+            { subject: "Life Mathematics", time: "2:00 pm – 5:10 pm" },
+          ],
+        },
+        {
+          date: "Tuesday, 4 Nov",
+          exams: [
+            { subject: "Home Economics", time: "9:00 am – 12:10 pm" },
+            { subject: "Computer Studies", time: "9:00 am – 12:10 pm" },
+            { subject: "Chemistry", time: "2:00 pm – 5:10 pm" },
+          ],
+        },
+        {
+          date: "Wednesday, 5 Nov",
+          exams: [
+            { subject: "Economics", time: "9:00 am – 12:00 pm" },
+            { subject: "Technical Drawing (TD)", time: "2:00 pm – 5:10 pm" },
+          ],
+        },
+      ],
+    },
+  ];
+
   // Sync state when user data loads
   useEffect(() => {
     const target = new Date("2025-10-27T00:00:00Z").getTime();
@@ -681,6 +734,59 @@ export default function Dashboard() {
                     Break / Snack / Relax
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* 2025 Fiji Year 13 Certificate Examination Timetable */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.26 }}
+          className="max-w-6xl mx-auto w-full"
+        >
+          <Card className="border-0 bg-card/60 backdrop-blur-sm mt-6">
+            <CardContent className="p-6">
+              <div className="mb-6 text-center space-y-2">
+                <h3 className="text-2xl md:text-3xl font-bold tracking-tight">
+                  2025 Fiji Year 13 Certificate Examination Timetable
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Stay prepared — key exam dates at a glance.
+                </p>
+              </div>
+
+              <div className="space-y-8">
+                {examSchedule.map((section) => (
+                  <div key={section.month} className="space-y-3">
+                    <h4 className="text-xl font-semibold">{section.month}</h4>
+                    <div className="w-full overflow-x-auto">
+                      <Table className="min-w-[640px]">
+                        <TableHeader>
+                          <TableRow className="border-muted">
+                            <TableHead className="w-56 text-muted-foreground">Date</TableHead>
+                            <TableHead>Subject</TableHead>
+                            <TableHead className="w-56 text-center">Time</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {section.days.flatMap((d) =>
+                            d.exams.map((exam, idx) => (
+                              <TableRow key={`${d.date}-${exam.subject}-${idx}`} className="border-muted/70">
+                                <TableCell className="font-medium text-muted-foreground">
+                                  {d.date}
+                                </TableCell>
+                                <TableCell className="font-medium">{exam.subject}</TableCell>
+                                <TableCell className="text-center">{exam.time}</TableCell>
+                              </TableRow>
+                            )),
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
