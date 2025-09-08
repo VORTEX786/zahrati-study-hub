@@ -34,6 +34,34 @@ export default function Dashboard() {
   const [targetSessions, setTargetSessions] = useState<number>(4);
   const [targetMinutes, setTargetMinutes] = useState<number>(120);
 
+  // ADD: Countdown state to Oct 27, 2025
+  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+
+  useEffect(() => {
+    const target = new Date("2025-10-27T00:00:00Z").getTime();
+
+    const tick = () => {
+      const now = Date.now();
+      const diff = Math.max(0, target - now);
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeLeft({ days, hours, minutes, seconds });
+    };
+
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
   // Sync state when user data loads
   useEffect(() => {
     if (user) {
@@ -371,6 +399,47 @@ export default function Dashboard() {
             Ready to make today productive? Let's start studying!
           </p>
         </motion.div>
+
+        {/* Countdown to Oct 27, 2025 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.16 }}
+          className="max-w-3xl mx-auto w-full"
+        >
+          <Card className="border-0 bg-card/60 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl md:text-3xl font-bold tracking-tight">
+                  Countdown to October 27, 2025
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Stay focused — every second counts.
+                </p>
+              </div>
+
+              <div className="mt-6 grid grid-cols-4 gap-3 text-center">
+                <div className="rounded-xl p-4 bg-primary/10 border">
+                  <div className="text-3xl md:text-4xl font-extrabold">{timeLeft.days}</div>
+                  <div className="text-xs mt-1 uppercase tracking-wide text-muted-foreground">Days</div>
+                </div>
+                <div className="rounded-xl p-4 bg-primary/10 border">
+                  <div className="text-3xl md:text-4xl font-extrabold">{timeLeft.hours}</div>
+                  <div className="text-xs mt-1 uppercase tracking-wide text-muted-foreground">Hours</div>
+                </div>
+                <div className="rounded-xl p-4 bg-primary/10 border">
+                  <div className="text-3xl md:text-4xl font-extrabold">{timeLeft.minutes}</div>
+                  <div className="text-xs mt-1 uppercase tracking-wide text-muted-foreground">Minutes</div>
+                </div>
+                <div className="rounded-xl p-4 bg-primary/10 border">
+                  <div className="text-3xl md:text-4xl font-extrabold">{timeLeft.seconds}</div>
+                  <div className="text-xs mt-1 uppercase tracking-wide text-muted-foreground">Seconds</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+        {/* End Countdown */}
 
         {/* Visual Weekly Study Timetable (Mon–Fri) */}
         <motion.div
