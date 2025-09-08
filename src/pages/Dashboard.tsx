@@ -90,12 +90,17 @@ export default function Dashboard() {
           date: "Tuesday, 4 Nov",
           exams: [
             { subject: "Home Economics", time: "9:00 am – 12:10 pm" },
+          ],
+        },
+        {
+          date: "Wednesday, 5 Nov",
+          exams: [
             { subject: "Computer Studies", time: "9:00 am – 12:10 pm" },
             { subject: "Chemistry", time: "2:00 pm – 5:10 pm" },
           ],
         },
         {
-          date: "Wednesday, 5 Nov",
+          date: "Thursday, 6 Nov",
           exams: [
             { subject: "Economics", time: "9:00 am – 12:00 pm" },
             { subject: "Technical Drawing (TD)", time: "2:00 pm – 5:10 pm" },
