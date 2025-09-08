@@ -6,19 +6,21 @@ import { StudyRatioTracker } from "@/components/StudyRatioTracker";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import { LogOut, Settings, User, Target } from "lucide-react";
+import { LogOut, Settings, User, Target, BookOpen } from "lucide-react";
 import { LifeGoals } from "@/components/LifeGoals";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { StudyInsights } from "@/components/StudyInsights";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Dashboard() {
   const { isLoading, isAuthenticated, user, signOut } = useAuth();
@@ -42,6 +44,15 @@ export default function Dashboard() {
     seconds: 0,
   });
 
+  // Add: Manual log dialog state and fields
+  const [logOpen, setLogOpen] = useState(false);
+  const [logDate, setLogDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [logMinutes, setLogMinutes] = useState<number>(25);
+  const [logType, setLogType] = useState<"focus" | "break">("focus");
+  const [logSubject, setLogSubject] = useState<string>("");
+  const [logNotes, setLogNotes] = useState<string>("");
+
+  // Sync state when user data loads
   useEffect(() => {
     const target = new Date("2025-10-27T00:00:00Z").getTime();
 
@@ -62,14 +73,6 @@ export default function Dashboard() {
     return () => clearInterval(id);
   }, []);
 
-  // Sync state when user data loads
-  useEffect(() => {
-    if (user) {
-      setFocusMinutes(user.focusDuration ?? 25);
-      setBreakMinutes(user.breakDuration ?? 5);
-    }
-  }, [user]);
-
   // Load today's goal to prefill fields
   const todayGoal = useQuery(api.dailyGoals.getTodayGoal);
   useEffect(() => {
@@ -81,6 +84,7 @@ export default function Dashboard() {
 
   const updateSettings = useMutation(api.studySessions.updateUserSettings);
   const saveGoal = useMutation(api.dailyGoals.createOrUpdateDailyGoal);
+  const createManual = useMutation(api.studySessions.createManualSession);
 
   // Add: static weekly timetable data (Mon–Fri) for visual schedule
   const weekdays: Array<string> = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -177,6 +181,46 @@ export default function Dashboard() {
     }
   };
 
+  const handleSaveManual = async () => {
+    try {
+      const invalidMinutes = !Number.isFinite(logMinutes) || logMinutes < 1 || logMinutes > 600;
+      if (invalidMinutes) {
+        toast("Please fix the highlighted fields", {
+          description: "Minutes must be between 1 and 600.",
+        });
+        return;
+      }
+      const d = String(logDate || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+        toast("Please enter a valid date (YYYY-MM-DD).");
+        return;
+      }
+
+      await createManual({
+        duration: Math.round(logMinutes),
+        date: d,
+        type: logType,
+        subject: logSubject.trim() || undefined,
+        notes: logNotes.trim() || undefined,
+        completed: true,
+      });
+
+      toast("Study session logged", {
+        description: `${logType === "focus" ? "Focus" : "Break"} • ${Math.round(logMinutes)} min`,
+      });
+
+      // reset lightweight fields but keep date for convenience
+      setLogMinutes(25);
+      setLogType("focus");
+      setLogSubject("");
+      setLogNotes("");
+      setLogOpen(false);
+    } catch (e) {
+      console.error(e);
+      toast("Failed to log session");
+    }
+  };
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate("/auth");
@@ -237,6 +281,9 @@ export default function Dashboard() {
                 <Settings className="h-4 w-4" />
               </Button>
               
+              <Button variant="ghost" size="sm" onClick={() => setLogOpen(true)}>
+                <BookOpen className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => signOut()}>
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -358,6 +405,95 @@ export default function Dashboard() {
                 !Number.isFinite(targetMinutes) ||
                 targetMinutes < 15 ||
                 targetMinutes > 600
+              }
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Log Dialog */}
+      <Dialog open={logOpen} onOpenChange={setLogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Log Past Study</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="logDate">Date</Label>
+                <Input
+                  id="logDate"
+                  type="date"
+                  value={logDate}
+                  onChange={(e) => setLogDate(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Type</Label>
+                <Select value={logType} onValueChange={(v) => setLogType(v as "focus" | "break")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="focus">Focus</SelectItem>
+                    <SelectItem value="break">Break</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="logMinutes">Minutes</Label>
+              <Input
+                id="logMinutes"
+                type="number"
+                min={1}
+                max={600}
+                value={Number.isFinite(logMinutes) ? logMinutes : 25}
+                onChange={(e) => setLogMinutes(Number(e.target.value))}
+              />
+              {(!Number.isFinite(logMinutes) || logMinutes < 1 || logMinutes > 600) && (
+                <span className="text-xs text-red-500">Enter a value between 1 and 600 minutes.</span>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="logSubject">Subject (optional)</Label>
+              <Input
+                id="logSubject"
+                placeholder="e.g., Calculus, Biology"
+                value={logSubject}
+                onChange={(e) => setLogSubject(e.target.value)}
+                maxLength={60}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="logNotes">Notes (optional)</Label>
+              <Textarea
+                id="logNotes"
+                placeholder="What did you study?"
+                value={logNotes}
+                onChange={(e) => setLogNotes(e.target.value)}
+                rows={3}
+                className="resize-none"
+                maxLength={300}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveManual}
+              disabled={
+                !Number.isFinite(logMinutes) ||
+                logMinutes < 1 ||
+                logMinutes > 600 ||
+                !logDate
               }
             >
               Save
