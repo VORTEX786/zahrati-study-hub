@@ -15,16 +15,18 @@ import {
 import { useNavigate } from "react-router";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
- // removed invalid hooks import from UI table
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function Landing() {
   const { isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const aiChat = useAction(api.ai.chat);
 
   // Add local state for timer customization
   const [focusMinutes, setFocusMinutes] = useState<number>(25);
@@ -70,6 +72,13 @@ export default function Landing() {
       // ignore corrupt storage
     }
   }, []);
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
+    { role: "assistant", content: "Hi! I'm your AI study helper. Ask me anything about planning, tips, or explanations." },
+  ]);
 
   const handleSaveTimerPrefs = async () => {
     const invalidFocus =
@@ -118,6 +127,48 @@ export default function Landing() {
     } else {
       // No login navigation from home page
       toast("You can explore the page without signing in.");
+    }
+  };
+
+  // Fix message typing for AI chat to satisfy Convex action args
+  const handleSendChat = async () => {
+    const trimmed = chatInput.trim();
+    if (!trimmed || chatLoading) return;
+
+    const nextMessages: Array<{ role: "user" | "assistant"; content: string }> = [
+      ...messages,
+      { role: "user" as const, content: trimmed },
+    ];
+    setMessages(nextMessages);
+    setChatInput("");
+    setChatLoading(true);
+    try {
+      const requestMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+        {
+          role: "system" as const,
+          content:
+            "You are an encouraging, concise study assistant for students using a study tracker app. Give practical tips and focused answers.",
+        },
+        ...nextMessages.map(
+          (m): { role: "user" | "assistant"; content: string } => ({
+            role: m.role,
+            content: m.content,
+          }),
+        ),
+      ];
+
+      const res = await aiChat({
+        messages: requestMessages,
+      });
+      const reply = (res as { content?: string })?.content ?? "I couldn't generate a response.";
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+    } catch (e: any) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: e?.message || "AI error. Please check your API key and try again." },
+      ]);
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -447,6 +498,67 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      {/* Floating AI Chat Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={() => setChatOpen(true)}
+          className="shadow-lg"
+        >
+          AI Study Helper
+        </Button>
+      </div>
+
+      {/* AI Chat Dialog */}
+      <Dialog open={chatOpen} onOpenChange={setChatOpen}>
+        <DialogContent className="sm:max-w-lg data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 duration-300">
+          <DialogHeader>
+            <DialogTitle>AI Study Helper</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-1">
+            {messages.map((m, i) => (
+              <div
+                key={i}
+                className={`rounded-lg px-3 py-2 text-sm leading-relaxed ${
+                  m.role === "user"
+                    ? "self-end bg-primary text-primary-foreground"
+                    : "self-start bg-muted"
+                }`}
+              >
+                {m.content}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-2">
+            <Textarea
+              placeholder="Ask for study tips, schedules, or explanations…"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendChat();
+                }
+              }}
+              disabled={chatLoading}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setChatOpen(false)}
+            >
+              Close
+            </Button>
+            <Button onClick={handleSendChat} disabled={chatLoading || !chatInput.trim()}>
+              {chatLoading ? "Thinking…" : "Send"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
