@@ -219,7 +219,7 @@ export default function Dashboard() {
 
       {/* Settings Dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 duration-300">
           <DialogHeader>
             <DialogTitle>Timer Settings</DialogTitle>
           </DialogHeader>
@@ -282,7 +282,7 @@ export default function Dashboard() {
 
       {/* Goal Dialog */}
       <Dialog open={goalOpen} onOpenChange={setGoalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 duration-300">
           <DialogHeader>
             <DialogTitle>Set Daily Goal</DialogTitle>
           </DialogHeader>
