@@ -63,17 +63,22 @@ export default function Dashboard() {
     {
       month: "October",
       days: [
-        { date: "Monday, 12 Oct", exams: [{ subject: "English", time: "9:00 am – 12:10 pm" }] },
-        { date: "Tuesday, 13 Oct", exams: [{ subject: "Geography", time: "9:00 am – 12:10 pm" }] },
+        { date: "Monday, 27 Oct", exams: [{ subject: "English", time: "9:00 am – 12:10 pm" }] },
+        { date: "Tuesday, 28 Oct", exams: [{ subject: "Geography", time: "9:00 am – 12:10 pm" }] },
         {
-          date: "Wednesday, 14 Oct",
+          date: "Wednesday, 29 Oct",
+          exams: [
+            { subject: "Biology", time: "2:00 pm – 5:10 pm" },
+          ],
+        },
+        {
+          date: "Thursday, 30 Oct",
           exams: [
             { subject: "Accounting", time: "9:00 am – 12:10 pm" },
-            { subject: "Biology", time: "2:00 pm – 5:10 pm" },
             { subject: "Agriculture", time: "2:00 pm – 5:10 pm" },
           ],
         },
-        { date: "Friday, 16 Oct", exams: [{ subject: "Physics", time: "9:00 am – 12:10 pm" }] },
+        { date: "Friday, 31 Oct", exams: [{ subject: "Physics", time: "9:00 am – 12:10 pm" }] },
       ],
     },
     {
