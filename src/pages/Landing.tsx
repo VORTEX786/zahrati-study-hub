@@ -130,7 +130,6 @@ export default function Landing() {
     }
   };
 
-  // Fix message typing for AI chat to satisfy Convex action args
   const handleSendChat = async () => {
     const trimmed = chatInput.trim();
     if (!trimmed || chatLoading) return;
@@ -163,6 +162,8 @@ export default function Landing() {
       const reply = (res as { content?: string })?.content ?? "I couldn't generate a response.";
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch (e: any) {
+      // Add toast with error details for immediate feedback
+      toast(e?.message || "AI error. Please check your API key and try again.");
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: e?.message || "AI error. Please check your API key and try again." },
