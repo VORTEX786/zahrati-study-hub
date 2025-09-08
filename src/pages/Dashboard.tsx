@@ -812,6 +812,13 @@ export default function Dashboard() {
             className="lg:col-span-1"
           >
             <PomodoroTimer onSessionComplete={handleSessionComplete} />
+            {/* Add: Quick access log button below timer */}
+            <div className="mt-4 flex justify-center">
+              <Button variant="outline" size="sm" onClick={() => setLogOpen(true)}>
+                <BookOpen className="h-4 w-4 mr-2" />
+                Log past study
+              </Button>
+            </div>
           </motion.div>
 
           {/* Right Column - Stats and Info */}
